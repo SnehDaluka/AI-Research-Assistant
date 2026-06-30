@@ -1,7 +1,8 @@
 from backend.embeddings.vector_math import cosine_similarity
+from backend.embeddings.model import model
 
 
-def search(query: str, document_store: list, model, top_k: int = 3):
+def search(query: str, document_store: list, top_k: int = 3):
     """
     Perform semantic search and return the top_k most similar documents.
     """

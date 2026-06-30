@@ -1,4 +1,6 @@
-MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+
+LLM_MODEL = "qwen2.5:3b"
 
 TOP_K = 3
 
