@@ -1,6 +1,6 @@
 from ollama import chat
 
-from backend.config import LLM_MODEL
+from backend.config import LLMConfig
 
 
 def generate_response(messages):
@@ -9,7 +9,7 @@ def generate_response(messages):
     """
 
     response = chat(
-        model=LLM_MODEL,
+        model=LLMConfig.MODEL,
         messages=messages
     )
 

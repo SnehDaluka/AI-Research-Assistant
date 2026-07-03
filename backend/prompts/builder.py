@@ -1,4 +1,4 @@
-from backend.config import SIMILARITY_THRESHOLD
+from backend.config import RetrievalConfig
 
 
 def build_prompt(query, search_results):
@@ -9,7 +9,7 @@ def build_prompt(query, search_results):
     relevant_results = [
         result
         for result in search_results
-        if result["score"] >= SIMILARITY_THRESHOLD
+        if result["score"] >= RetrievalConfig.SIMILARITY_THRESHOLD
     ]
 
     if not relevant_results:

@@ -20,6 +20,9 @@ def main():
         search_results = search(query, document_store)
 
         prompt = build_prompt(query, search_results)
+        print("\nPrompt")
+        print("-" * 60)
+        print(prompt)
 
         answer = generate_answer(prompt)
 
