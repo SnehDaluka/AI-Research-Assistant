@@ -11,9 +11,9 @@ def main():
     print("AI Research Assistant")
     print("=" * 60)
 
-    document_store = DocumentStore()
-    
     embedding_service = EmbeddingService()
+    
+    document_store = DocumentStore(embedding_service)
     
     embeddings = embedding_service.embed_documents(documents)
 

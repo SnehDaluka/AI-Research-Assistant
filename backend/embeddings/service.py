@@ -1,6 +1,6 @@
 from typing import List
 
-import faiss
+# import faiss
 import numpy as np
 
 from backend.embeddings.model import model
@@ -53,7 +53,8 @@ class EmbeddingService:
         embedding = embedding.reshape(1, -1)
 
         # Normalize for cosine similarity
-        faiss.normalize_L2(embedding)
+        # faiss.normalize_L2(embedding)
+        embedding /= np.linalg.norm(embedding, axis=1, keepdims=True)
 
         return embedding
 
@@ -74,6 +75,7 @@ class EmbeddingService:
         )
 
         # Normalize for cosine similarity
-        faiss.normalize_L2(embeddings)
+        # faiss.normalize_L2(embeddings)
+        embeddings /= np.linalg.norm(embeddings, axis=1, keepdims=True)
 
         return embeddings

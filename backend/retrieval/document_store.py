@@ -1,7 +1,6 @@
 from backend.embeddings.vector_math import cosine_similarity
 from backend.config import TOP_K
 from backend.models.search_result import SearchResult
-from backend.embeddings.service import EmbeddingService
 import faiss
 
 
@@ -12,10 +11,10 @@ class DocumentStore:
     and clearing documents.
     """
 
-    def __init__(self):
+    def __init__(self, embedding_service):
         self.documents = []
-        embedding_service = EmbeddingService()
-        dimension = embedding_service.dimension()
+        self.embedding_service = embedding_service
+        dimension = self.embedding_service.dimension()
         self.index = faiss.IndexFlatIP(dimension)
 
     def add_documents(self, documents, embeddings):
@@ -36,19 +35,22 @@ class DocumentStore:
         Return the top-k most similar documents.
         """
 
-        similarities = []
+        results = []
         
         distances, indices = self.index.search(query_embedding, top_k)
 
         for idx, distance in zip(indices[0], distances[0]):
-            similarities.append(
+            if idx == -1:
+                continue
+            
+            results.append(
                 SearchResult(
                     text=self.documents[idx],
                     score=float(distance)
                 )
             )
         
-        return similarities[:top_k]
+        return results[:top_k]
 
     def count(self):
         """
@@ -62,4 +64,4 @@ class DocumentStore:
         """
 
         self.documents.clear()
-        self.embeddings.clear()
+        self.index = faiss.IndexFlatIP(self.embedding_service.dimension())
