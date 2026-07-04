@@ -1,5 +1,5 @@
 from backend.embeddings.service import EmbeddingService
-from backend.data import documents
+from backend.data.documents import documents
 from backend.retrieval import document_store
 from backend.retrieval.document_store import DocumentStore
 from backend.prompts.builder import build_prompt
@@ -30,6 +30,7 @@ def main():
         search_results = document_store.search(query_embedding)
 
         prompt = build_prompt(query, search_results)
+        
         print("\nPrompt")
         print("-" * 60)
         print(prompt)

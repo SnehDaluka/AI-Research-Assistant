@@ -1,7 +1,8 @@
-from backend.embeddings.vector_math import cosine_similarity
-from backend.config import TOP_K
+from backend.config import RetrievalConfig
 from backend.models.search_result import SearchResult
 import faiss
+from typing import List
+import numpy as np
 
 
 class DocumentStore:
@@ -14,10 +15,9 @@ class DocumentStore:
     def __init__(self, embedding_service):
         self.documents = []
         self.embedding_service = embedding_service
-        dimension = self.embedding_service.dimension()
-        self.index = faiss.IndexFlatIP(dimension)
+        self.index = faiss.IndexFlatIP(self.embedding_service.dimension())
 
-    def add_documents(self, documents, embeddings):
+    def add_documents(self, documents: List[str], embeddings: np.ndarray) -> None:
         """
         Add documents and their embeddings to the store.
         """
@@ -28,29 +28,39 @@ class DocumentStore:
             )
 
         self.documents.extend(documents)
+        
+        if embeddings.ndim != 2:
+            raise ValueError("Embeddings must be a 2D NumPy array.")
+
         self.index.add(embeddings)
 
-    def search(self, query_embedding, top_k=TOP_K):
+    def search(self, query_embedding: np.ndarray, top_k: int = RetrievalConfig.TOP_K) -> List[SearchResult]:
         """
         Return the top-k most similar documents.
         """
+        
+        if query_embedding.ndim != 2:
+            raise ValueError("Query embedding must have shape (1, dimension).")
 
         results = []
         
+        if self.count() == 0:
+            return []
+        
         distances, indices = self.index.search(query_embedding, top_k)
 
-        for idx, distance in zip(indices[0], distances[0]):
-            if idx == -1:
+        for document_index, score in zip(indices[0], distances[0]):
+            if document_index == -1:
                 continue
             
             results.append(
                 SearchResult(
-                    text=self.documents[idx],
-                    score=float(distance)
+                    text=self.documents[document_index],
+                    score=float(score)
                 )
             )
         
-        return results[:top_k]
+        return results
 
     def count(self):
         """

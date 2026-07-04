@@ -9,7 +9,7 @@ def build_prompt(query, search_results):
     relevant_results = [
         result
         for result in search_results
-        if result["score"] >= RetrievalConfig.SIMILARITY_THRESHOLD
+        if result.score >= RetrievalConfig.SIMILARITY_THRESHOLD
     ]
 
     if not relevant_results:
@@ -21,7 +21,7 @@ def build_prompt(query, search_results):
 
     for index, result in enumerate(relevant_results, start=1):
         prompt_parts.append(
-            f"[{index}]\n{result['text']}"
+            f"[{index}]\n{result.text}"
         )
 
     prompt_parts.append(f"Question:\n{query}")

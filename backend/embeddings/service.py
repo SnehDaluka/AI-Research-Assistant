@@ -37,7 +37,7 @@ class EmbeddingService:
         """
         Return the embedding dimension of the current model.
         """
-        return model.get_sentence_embedding_dimension()
+        return model.get_embedding_dimension()
 
     def _prepare_query_embedding(
         self,
