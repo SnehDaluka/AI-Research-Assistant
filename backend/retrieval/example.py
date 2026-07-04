@@ -13,3 +13,12 @@ faiss.normalize_L2(vectors)
 index.add(vectors)
 
 print(index.ntotal)
+
+query = np.random.rand(1, dimension).astype("float32")
+
+faiss.normalize_L2(query)
+
+distances, indices = index.search(query, k=2)
+
+print(distances)
+print(indices)

@@ -25,7 +25,7 @@ def main():
         if query.lower() == "exit":
             break
 
-        query_embedding = embedding_service.embed(query)
+        query_embedding = embedding_service.embed_query(query)
 
         search_results = document_store.search(query_embedding)
 
