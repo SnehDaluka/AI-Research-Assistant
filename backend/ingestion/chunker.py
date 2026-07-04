@@ -1,32 +1,51 @@
-def chunk_text(text, chunk_size=100, overlap=20):
-    words = text.split()
-    chunks = []
-    
-    if overlap >= chunk_size:
-        raise ValueError("Overlap must be smaller than chunk_size")
-    if overlap < 0:
-        raise ValueError("Overlap must be non-negative")
+from backend.models.document import Document
+
+
+def chunk_text(
+    text: str,
+    chunk_size: int = 100,
+    overlap: int = 20,
+):
+    """
+    Split text into overlapping chunks.
+    """
+
     if chunk_size <= 0:
-        raise ValueError("Chunk size must be positive")
+        raise ValueError("chunk_size must be positive.")
 
+    if overlap < 0:
+        raise ValueError("overlap must be non-negative.")
 
-    for i in range(0, len(words), chunk_size - overlap):
-        chunk = " ".join(words[i : i + chunk_size])
-        chunks.append(chunk)
+    if overlap >= chunk_size:
+        raise ValueError("overlap must be smaller than chunk_size.")
 
-    return chunks
+    if not text.strip():
+        return []
 
+    words = text.split()
 
-sample_text = """
-Artificial Intelligence is changing the world by automating complex tasks.
-Machine Learning is a subset of Artificial Intelligence.
-Deep Learning uses neural networks.
-Large Language Models can generate human-like text.
-"""
+    step = chunk_size - overlap
 
-chunks = chunk_text(sample_text, chunk_size=8, overlap=8)
+    documents = []
 
-for i, chunk in enumerate(chunks, 1):
-    print(f"Chunk {i}:")
-    print(chunk)
-    print("-" * 50)
+    chunk_id = 0
+
+    for start in range(0, len(words), step):
+
+        chunk = " ".join(
+            words[start:start + chunk_size]
+        ).strip()
+
+        if not chunk:
+            continue
+
+        documents.append(
+            Document(
+                chunk_id=chunk_id,
+                text=chunk
+            )
+        )
+
+        chunk_id += 1
+
+    return documents

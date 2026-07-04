@@ -1,3 +1,4 @@
+from backend.models.document import Document
 from typing import List
 
 # import faiss
@@ -26,11 +27,12 @@ class EmbeddingService:
         embedding = model.encode(query)
         return self._prepare_query_embedding(embedding)
 
-    def embed_documents(self, documents: List[str]) -> np.ndarray:
+    def embed_documents(self, documents: List[Document]) -> np.ndarray:
         """
         Generate embeddings for multiple documents.
         """
-        embeddings = model.encode(documents)
+        texts = [document.text for document in documents]
+        embeddings = model.encode(texts)
         return self._prepare_document_embeddings(embeddings)
 
     def dimension(self) -> int:

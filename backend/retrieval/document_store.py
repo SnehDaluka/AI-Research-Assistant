@@ -1,4 +1,5 @@
 from backend.config import RetrievalConfig
+from backend.models.document import Document
 from backend.models.search_result import SearchResult
 import faiss
 from typing import List
@@ -17,7 +18,7 @@ class DocumentStore:
         self.embedding_service = embedding_service
         self.index = faiss.IndexFlatIP(self.embedding_service.dimension())
 
-    def add_documents(self, documents: List[str], embeddings: np.ndarray) -> None:
+    def add_documents(self, documents: List[Document], embeddings: np.ndarray) -> None:
         """
         Add documents and their embeddings to the store.
         """
@@ -55,7 +56,7 @@ class DocumentStore:
             
             results.append(
                 SearchResult(
-                    text=self.documents[document_index],
+                    document=self.documents[document_index],
                     score=float(score)
                 )
             )

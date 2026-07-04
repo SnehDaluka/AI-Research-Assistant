@@ -21,7 +21,7 @@ def build_prompt(query, search_results):
 
     for index, result in enumerate(relevant_results, start=1):
         prompt_parts.append(
-            f"[{index}]\n{result.text}"
+            f"[{index}]\n{result.document.text}"
         )
 
     prompt_parts.append(f"Question:\n{query}")
