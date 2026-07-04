@@ -1,5 +1,7 @@
-from backend.retrieval.document_store import build_document_store
-from backend.retrieval.semantic_search import search
+from backend.embeddings.service import EmbeddingService
+from backend.data import documents
+from backend.retrieval import document_store
+from backend.retrieval.document_store import DocumentStore
 from backend.prompts.builder import build_prompt
 from backend.llm.generator import generate_answer
 
@@ -9,15 +11,23 @@ def main():
     print("AI Research Assistant")
     print("=" * 60)
 
-    document_store = build_document_store()
+    document_store = DocumentStore()
+    
+    embedding_service = EmbeddingService()
+    
+    embeddings = embedding_service.embed_documents(documents)
 
+    document_store.add_documents(documents, embeddings)    
+    
     while True:
         query = input("\nAsk a question (type 'exit' to quit): ").strip()
 
         if query.lower() == "exit":
             break
 
-        search_results = search(query, document_store)
+        query_embedding = embedding_service.embed(query)
+
+        search_results = document_store.search(query_embedding)
 
         prompt = build_prompt(query, search_results)
         print("\nPrompt")
