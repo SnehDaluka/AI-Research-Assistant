@@ -8,5 +8,9 @@ class LLMConfig:
 
 
 class RetrievalConfig:
-    TOP_K = 10
+    TOP_K = 5
     SIMILARITY_THRESHOLD = 0.4
+    
+class DebugConfig:
+    DEBUG = True
+    SHOW_SEARCH_RESULTS = True
