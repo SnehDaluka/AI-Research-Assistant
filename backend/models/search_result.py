@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from backend.models.document import Document
 
 
 @dataclass
 class SearchResult:
-    text: str
+    document: Document
     score: float
