@@ -1,18 +1,31 @@
 import fitz
 
+from backend.models.page import Page
 
-def extract_text(pdf_path: str) -> str:
+
+def extract_text(pdf_path: str) -> list[Page]:
     """
-    Extract all text from a PDF.
+    Extract text from each page of the PDF.
     """
 
-    document = fitz.open(pdf_path)
+    pdf = fitz.open(pdf_path)
 
     pages = []
 
-    for page in document:
-        pages.append(page.get_text())
+    for page_number, page in enumerate(pdf, start=1):
 
-    document.close()
+        text = page.get_text().strip()
 
-    return "\n".join(pages)
+        if not text:
+            continue
+
+        pages.append(
+            Page(
+                number=page_number,
+                text=text
+            )
+        )
+
+    pdf.close()
+
+    return pages

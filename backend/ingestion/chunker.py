@@ -1,51 +1,61 @@
 from backend.models.document import Document
 
 
-def chunk_text(
-    text: str,
-    chunk_size: int = 100,
-    overlap: int = 20,
+def chunk_pages(
+    pages,
+    source,
+    chunk_size=100,
+    overlap=20,
 ):
     """
-    Split text into overlapping chunks.
+    Chunk every page separately.
     """
 
     if chunk_size <= 0:
-        raise ValueError("chunk_size must be positive.")
+        raise ValueError(
+            "chunk_size must be positive."
+        )
 
     if overlap < 0:
-        raise ValueError("overlap must be non-negative.")
+        raise ValueError(
+            "overlap must be non-negative."
+        )
 
     if overlap >= chunk_size:
-        raise ValueError("overlap must be smaller than chunk_size.")
-
-    if not text.strip():
-        return []
-
-    words = text.split()
-
-    step = chunk_size - overlap
+        raise ValueError(
+            "overlap must be smaller than chunk_size."
+        )
 
     documents = []
 
-    chunk_id = 0
+    step = chunk_size - overlap
 
-    for start in range(0, len(words), step):
+    for page in pages:
 
-        chunk = " ".join(
-            words[start:start + chunk_size]
-        ).strip()
+        words = page.text.split()
 
-        if not chunk:
-            continue
+        chunk_number = 1
 
-        documents.append(
-            Document(
-                chunk_id=chunk_id,
-                text=chunk
+        for start in range(0, len(words), step):
+
+            chunk = " ".join(words[start:start + chunk_size]).strip()
+
+            if not chunk:
+                continue
+
+            documents.append(
+                Document(
+                    chunk_id=(
+                        f"{source.filename}_"
+                        f"page_{page.number}_"
+                        f"chunk_{chunk_number}"
+                    ),
+                    source=source,
+                    page=page.number,
+                    text=chunk,
+                )
             )
-        )
 
-        chunk_id += 1
+            chunk_number += 1
 
     return documents

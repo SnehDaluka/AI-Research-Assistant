@@ -1,6 +1,10 @@
+from backend.models.source import SourceDocument
+from pathlib import Path
+
 from backend.ingestion.loader import load_pdf
 from backend.ingestion.extractor import extract_text
-from backend.ingestion.chunker import chunk_text
+from backend.ingestion.chunker import chunk_pages
+from backend.models.ingestion_result import IngestionResult
 
 
 class IngestionPipeline:
@@ -8,32 +12,83 @@ class IngestionPipeline:
     Coordinates the document ingestion process.
     """
 
-    def __init__(
-        self,
-        embedding_service,
-        document_store,
-    ):
+    def __init__(self, embedding_service, document_store):
         self.embedding_service = embedding_service
         self.document_store = document_store
 
-    def ingest_pdf(self, pdf_path: str):
+    def ingest_pdf(self, pdf_path: str) -> IngestionResult:
         """
-        Ingest a PDF into the document store.
+        Ingest a single PDF into the document store.
         """
 
         pdf = load_pdf(pdf_path)
 
-        text = extract_text(str(pdf))
+        print(f"\nLoading: {pdf.name}")
 
-        documents = chunk_text(text)
+        pages = extract_text(str(pdf))
 
-        embeddings = self.embedding_service.embed_documents(
-            documents
+        documents = chunk_pages(
+            pages,
+            source=SourceDocument(
+                filename=pdf.name,
+                path=Path(pdf_path),
+            ),
         )
+
+        embeddings = self.embedding_service.embed_documents(documents)
 
         self.document_store.add_documents(
             documents,
-            embeddings
+            embeddings,
         )
 
-        return len(documents)
+        result = IngestionResult(
+            filename=pdf.name,
+            chunks=len(documents),
+        )
+
+        print(f"✓ Indexed {result.chunks} chunks")
+
+        return result
+
+    def ingest_directory(self, directory_path: str):
+        """
+        Ingest all PDF files from a directory.
+        """
+
+        directory = Path(directory_path)
+
+        if not directory.exists():
+            raise FileNotFoundError(
+                f"Directory not found: {directory_path}"
+            )
+
+        pdf_files = sorted(directory.glob("*.pdf"))
+
+        if not pdf_files:
+            print("No PDF files found.")
+            return
+
+        print("=" * 60)
+        print("Building Knowledge Base")
+        print("=" * 60)
+
+        results = []
+
+        for pdf in pdf_files:
+            result = self.ingest_pdf(str(pdf))
+            results.append(result)
+
+        total_chunks = sum(
+            result.chunks
+            for result in results
+        )
+
+        print("\n" + "=" * 60)
+        print("Knowledge Base Built Successfully")
+        print("=" * 60)
+
+        print(f"Files Indexed : {len(results)}")
+        print(f"Chunks Indexed: {total_chunks}")
+
+        print("=" * 60)

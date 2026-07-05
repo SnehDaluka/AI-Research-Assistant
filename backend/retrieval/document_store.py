@@ -1,9 +1,17 @@
+import faiss
+import pickle
+
+from typing import List
+import numpy as np
+
 from backend.config import RetrievalConfig
 from backend.models.document import Document
 from backend.models.search_result import SearchResult
-import faiss
-from typing import List
-import numpy as np
+
+from backend.storage.paths import (
+    INDEX_PATH,
+    DOCUMENTS_PATH,
+)
 
 
 class DocumentStore:
@@ -71,8 +79,49 @@ class DocumentStore:
 
     def clear(self):
         """
-        Remove all stored documents and embeddings.
+        Clear all documents and recreate the FAISS index.
         """
 
         self.documents.clear()
-        self.index = faiss.IndexFlatIP(self.embedding_service.dimension())
+
+        self.index = faiss.IndexFlatIP(
+            self.embedding_service.dimension()
+        )
+        
+    def save(self):
+        """
+        Persist the FAISS index and documents.
+        """
+
+        faiss.write_index(
+            self.index,
+            str(INDEX_PATH),
+        )
+
+        with open(DOCUMENTS_PATH, "wb") as file:
+            pickle.dump(
+                self.documents,
+                file,
+            )
+
+    def load(self):
+        """
+        Load the FAISS index and documents.
+        """
+
+        self.index = faiss.read_index(
+            str(INDEX_PATH)
+        )
+
+        with open(DOCUMENTS_PATH, "rb") as file:
+            self.documents = pickle.load(file)
+
+    def exists(self):
+        """
+        Return True if a persisted knowledge base exists.
+        """
+
+        return (
+            INDEX_PATH.exists()
+            and DOCUMENTS_PATH.exists()
+        )
