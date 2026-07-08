@@ -12,9 +12,15 @@ class IngestionPipeline:
     Coordinates the document ingestion process.
     """
 
-    def __init__(self, embedding_service, document_store):
+    def __init__(
+        self,
+        embedding_service,
+        document_store,
+        keyword_search=None,
+    ):
         self.embedding_service = embedding_service
         self.document_store = document_store
+        self.keyword_search = keyword_search
 
     def ingest_pdf(self, pdf_path: str) -> IngestionResult:
         """
@@ -46,6 +52,9 @@ class IngestionPipeline:
             filename=pdf.name,
             chunks=len(documents),
         )
+        
+        if self.keyword_search is not None:
+            self.keyword_search.build_index()
 
         print(f"✓ Indexed {result.chunks} chunks")
 
