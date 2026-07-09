@@ -1,3 +1,7 @@
+from backend.retrieval.keyword_search import KeywordSearch
+from backend.evaluation.test import embedding_service
+from backend.retrieval.hybrid_search import HybridSearch
+from backend.retrieval import hybrid_search
 from backend.config import DebugConfig
 from backend.utils.display import print_search_results
 from backend.embeddings.service import EmbeddingService
@@ -17,9 +21,12 @@ def startup():
 
     document_store = DocumentStore(embedding_service)
 
+    keyword_search = KeywordSearch(document_store)
+
     pipeline = IngestionPipeline(
         embedding_service,
         document_store,
+        keyword_search,
     )
 
     if document_store.exists():
@@ -53,6 +60,11 @@ def chat_loop(
     """
     Start the interactive chat.
     """
+    
+    hybrid_search = HybridSearch(
+        embedding_service,
+        document_store,
+    )
 
     while True:
 
@@ -62,9 +74,7 @@ def chat_loop(
             print("\nGoodbye!")
             break
 
-        query_embedding = embedding_service.embed_query(query)
-
-        search_results = document_store.search(query_embedding)
+        search_results = hybrid_search.search(query)
 
         if DebugConfig.DEBUG and DebugConfig.SHOW_SEARCH_RESULTS:
             print_search_results(search_results)
