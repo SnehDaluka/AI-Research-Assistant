@@ -1,3 +1,4 @@
+from backend.prompts.context_builder import ContextBuilder
 from backend.retrieval.retrieval_pipeline import RetrievalPipeline
 from backend.reranking.service import RerankingService
 from backend.reranking.cross_encoder import CrossEncoderReranker
@@ -11,7 +12,6 @@ from backend.utils.display import print_search_results
 from backend.embeddings.service import EmbeddingService
 from backend.retrieval.document_store import DocumentStore
 from backend.ingestion.pipeline import IngestionPipeline
-
 from backend.prompts.builder import build_prompt
 from backend.llm.generator import generate_answer
 
@@ -54,10 +54,14 @@ def startup():
         keyword_search,
     )
     
+    # Retrieval Pipeline
     retrieval_pipeline = RetrievalPipeline(
         hybrid_search,
         reranker,
     )
+    
+    # Context Builder
+    context_builder = ContextBuilder()
 
     # Load existing knowledge base or build a new one
     if document_store.exists():
@@ -86,15 +90,12 @@ def startup():
         print("Knowledge Base saved.")
 
     return (
-        embedding_service,
-        document_store,
-        retrieval_pipeline
+        retrieval_pipeline,
+        context_builder,
     )
 
 
-def chat_loop(
-    retrieval_pipeline
-):
+def chat_loop(retrieval_pipeline, context_builder):
     """
     Start the interactive chat.
     """
@@ -107,14 +108,16 @@ def chat_loop(
             print("\nGoodbye!")
             break
 
-        search_results = retrieval_pipeline.search(query)
+        results = retrieval_pipeline.search(query)
         
         if DebugConfig.DEBUG and DebugConfig.SHOW_SEARCH_RESULTS:
-            print_search_results(search_results)
+            print_search_results(results)
+            
+        context = context_builder.build(results)
 
         prompt = build_prompt(
             query,
-            search_results,
+            context,
         )
 
         if DebugConfig.DEBUG:
@@ -131,9 +134,9 @@ def chat_loop(
 
 def main():
 
-    (_, _, retrieval_pipeline) = startup()
+    retrieval_pipeline, context_builder = startup()
 
-    chat_loop(retrieval_pipeline)
+    chat_loop(retrieval_pipeline, context_builder)
 
 
 if __name__ == "__main__":
