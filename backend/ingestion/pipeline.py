@@ -1,6 +1,5 @@
 from backend.models.source import SourceDocument
 from pathlib import Path
-
 from backend.ingestion.loader import load_pdf
 from backend.ingestion.extractor import extract_text
 from backend.ingestion.chunker import chunk_pages
