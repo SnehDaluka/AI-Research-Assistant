@@ -43,7 +43,7 @@ class DocumentStore:
 
         self.index.add(embeddings)
 
-    def semantic_search(self, query_embedding: np.ndarray, top_k: int = RetrievalConfig.TOP_K) -> List[SearchResult]:
+    def semantic_search(self, query_embedding: np.ndarray, top_k: int = RetrievalConfig.SEARCH_TOP_K) -> List[SearchResult]:
         """
         Return the top-k most similar documents.
         """

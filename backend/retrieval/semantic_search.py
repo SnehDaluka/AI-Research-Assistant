@@ -16,9 +16,7 @@ class SemanticSearch:
         query: str,
     ):
 
-        embedding = self.embedding_service.embed_query(
-            query
-        )
+        embedding = self.embedding_service.embed_query(query)
 
         return self.document_store.semantic_search(
             embedding,
