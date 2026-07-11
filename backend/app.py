@@ -1,12 +1,14 @@
+from backend.query.hybrid_rewriter import HybridRewriter
+from backend.query.llm_rewriter import LLMRewriter
+from backend.query.rule_based import RuleBasedRewriter
 from backend.prompts.context_builder import ContextBuilder
 from backend.retrieval.retrieval_pipeline import RetrievalPipeline
 from backend.reranking.service import RerankingService
 from backend.reranking.cross_encoder import CrossEncoderReranker
 from backend.retrieval.semantic_search import SemanticSearch
 from backend.retrieval.keyword_search import KeywordSearch
-from backend.evaluation.test import embedding_service
+# from backend.evaluation.test import embedding_service
 from backend.retrieval.hybrid_search import HybridSearch
-from backend.retrieval import hybrid_search
 from backend.config import DebugConfig
 from backend.utils.display import print_search_results
 from backend.embeddings.service import EmbeddingService
@@ -54,10 +56,21 @@ def startup():
         keyword_search,
     )
     
+    # Query Rewriter
+    rule_rewriter = RuleBasedRewriter()
+
+    llm_rewriter = LLMRewriter()
+
+    query_rewriter = HybridRewriter(
+        rule_rewriter,
+        llm_rewriter,
+    )
+    
     # Retrieval Pipeline
     retrieval_pipeline = RetrievalPipeline(
         hybrid_search,
         reranker,
+        query_rewriter
     )
     
     # Context Builder

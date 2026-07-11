@@ -18,13 +18,25 @@ class RetrievalPipeline:
         self,
         hybrid_search,
         reranker,
+        query_rewriter,
     ):
         self.hybrid_search = hybrid_search
         self.reranker = reranker
+        self.query_rewriter = query_rewriter
 
     def search(self, query: str):
 
-        results = self.hybrid_search.search(query)
+        rewritten_query = query
+        
+        if RetrievalConfig.ENABLE_QUERY_REWRITING:
+            rewritten_query = self.query_rewriter.rewrite(query)
+            
+            print("\nQuery Rewritten")
+            print("--------------------")
+            print(f"Original : {query}")
+            print(f"Expanded : {rewritten_query}")
+
+        results = self.hybrid_search.search(rewritten_query)
 
         if not results:
             return []
@@ -34,7 +46,7 @@ class RetrievalPipeline:
             and self._should_rerank(results)
         ):
             results = self.reranker.rerank(
-                query,
+                rewritten_query,
                 results,
             )
 

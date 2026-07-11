@@ -9,13 +9,13 @@ class LLMConfig:
 class RerankerConfig:
     MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
-
 class RetrievalConfig:
     SEARCH_TOP_K = 10
     RERANK_TOP_K = 5
     ENABLE_RERANKING = True
     RERANK_SCORE_MARGIN = 0.05
     SIMILARITY_THRESHOLD = 0.5
+    ENABLE_QUERY_REWRITING = True
     
 class DebugConfig:
     DEBUG = True
