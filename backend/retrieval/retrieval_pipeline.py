@@ -24,12 +24,15 @@ class RetrievalPipeline:
         self.reranker = reranker
         self.query_rewriter = query_rewriter
 
-    def search(self, query: str):
+    def search(self, query: str, history=None):
 
         rewritten_query = query
         
         if RetrievalConfig.ENABLE_QUERY_REWRITING:
-            rewritten_query = self.query_rewriter.rewrite(query)
+            rewritten_query = self.query_rewriter.rewrite(
+                query,
+                history,
+            )
             
             print("\nQuery Rewritten")
             print("--------------------")

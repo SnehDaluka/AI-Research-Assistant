@@ -7,7 +7,7 @@ class RuleBasedRewriter(QueryRewriter):
     Expands abbreviations using a synonym dictionary.
     """
 
-    def rewrite(self, query: str) -> str:
+    def rewrite(self, query: str, history=None) -> str:
 
         words = query.split()
 

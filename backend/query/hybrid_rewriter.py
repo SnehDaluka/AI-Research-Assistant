@@ -14,14 +14,19 @@ class HybridRewriter(QueryRewriter):
         self.rule_rewriter = rule_rewriter
         self.llm_rewriter = llm_rewriter
 
-    def rewrite(self, query: str) -> str:
+    def rewrite(self, query: str, history=None) -> str:
 
-        expanded_query = self.rule_rewriter.rewrite(
-            query
+        standalone_query = (
+            self.llm_rewriter.rewrite(
+                query,
+                history,
+            )
         )
 
-        rewritten_query = self.llm_rewriter.rewrite(
-            expanded_query
+        expanded_query = (
+            self.rule_rewriter.rewrite(
+                standalone_query
+            )
         )
 
-        return rewritten_query
+        return expanded_query

@@ -7,7 +7,11 @@ class QueryRewriter(ABC):
     """
 
     @abstractmethod
-    def rewrite(self, query: str) -> str:
+    def rewrite(
+        self,
+        query: str,
+        history=None,
+    ) -> str:
         """
         Rewrite the user's query.
         """

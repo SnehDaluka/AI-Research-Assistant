@@ -1,3 +1,4 @@
+from backend.conversation.memory import ConversationMemory
 from backend.llm.service import LLMService
 from backend.llm.client import OllamaClient
 from backend.llm.generator import AnswerGenerator
@@ -127,6 +128,15 @@ def startup():
         document_store,
         keyword_search,
     )
+    
+    
+    # --------------------------------
+    # Conversation Memory
+    # --------------------------------
+    
+    conversation_memory = ConversationMemory(
+        max_messages=10
+    )
 
     # --------------------------------
     # Knowledge Base
@@ -158,10 +168,11 @@ def startup():
         retrieval_pipeline,
         context_builder,
         answer_generator,
+        conversation_memory
     )
 
 
-def chat_loop(retrieval_pipeline, context_builder, answer_generator):
+def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory):
     """
     Start the interactive chat.
     """
@@ -173,16 +184,22 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator):
         if query.lower() == "exit":
             print("\nGoodbye!")
             break
+        
+        # Get history BEFORE adding current question
+        history = (
+            conversation_memory.get_messages()
+        )
 
         # Retrieve relevant documents
         results = retrieval_pipeline.search(
-            query
+            query,
+            history,
         )
         
         if DebugConfig.DEBUG and DebugConfig.SHOW_SEARCH_RESULTS:
             print_search_results(results)
             
-        # Build context
+        # Build RAG context
         context = context_builder.build(
             results
         )
@@ -202,6 +219,15 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator):
         answer = answer_generator.generate(
             prompt
         )
+        
+        # Store completed conversation turn
+        conversation_memory.add_user_message(
+            query
+        )
+
+        conversation_memory.add_assistant_message(
+            answer
+        )
 
         print("\nAnswer")
         print("-" * 60)
@@ -210,9 +236,9 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator):
 
 def main():
 
-    retrieval_pipeline, context_builder, answer_generator = startup()
+    retrieval_pipeline, context_builder, answer_generator, conversation_memory = startup()
 
-    chat_loop(retrieval_pipeline, context_builder, answer_generator)
+    chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory)
 
 
 if __name__ == "__main__":
