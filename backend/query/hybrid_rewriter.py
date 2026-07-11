@@ -3,7 +3,7 @@ from backend.query.base import QueryRewriter
 
 class HybridRewriter(QueryRewriter):
     """
-    Combines multiple rewriting strategies.
+    Combines rule-based expansion with LLM-based rewriting.
     """
 
     def __init__(
@@ -16,8 +16,12 @@ class HybridRewriter(QueryRewriter):
 
     def rewrite(self, query: str) -> str:
 
-        query = self.rule_rewriter.rewrite(query)
+        expanded_query = self.rule_rewriter.rewrite(
+            query
+        )
 
-        query = self.llm_rewriter.rewrite(query)
+        rewritten_query = self.llm_rewriter.rewrite(
+            expanded_query
+        )
 
-        return query
+        return rewritten_query

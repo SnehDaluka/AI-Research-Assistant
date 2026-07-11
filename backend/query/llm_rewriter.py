@@ -1,27 +1,30 @@
 from backend.query.base import QueryRewriter
-from backend.llm.generator import generate_answer
 
 
 class LLMRewriter(QueryRewriter):
     """
-    Uses the local LLM to rewrite the query.
+    Uses an LLM to rewrite a query for better retrieval.
     """
+
+    def __init__(self, llm_service):
+        self.llm_service = llm_service
 
     def rewrite(self, query: str) -> str:
 
-        prompt = f"""
-Rewrite the following search query to improve document retrieval.
+        prompt = (
+            "Rewrite the following search query to improve "
+            "document retrieval.\n\n"
+            "Rules:\n"
+            "- Keep the original meaning unchanged.\n"
+            "- Expand abbreviations when appropriate.\n"
+            "- Make the query clear and descriptive.\n"
+            "- Do not answer the question.\n"
+            "- Return only the rewritten query.\n\n"
+            f"Original query:\n{query}"
+        )
 
-Rules:
-- Keep the meaning unchanged.
-- Expand abbreviations when appropriate.
-- Return ONLY the rewritten query.
-- Do not answer the question.
+        rewritten_query = self.llm_service.generate(
+            prompt
+        )
 
-Query:
-{query}
-"""
-
-        rewritten = generate_answer(prompt)
-
-        return rewritten.strip()
+        return rewritten_query.strip()

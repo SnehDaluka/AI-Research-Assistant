@@ -1,24 +1,14 @@
-from backend.llm.client import generate_response
-from backend.prompts.templates import SYSTEM_PROMPT
-
-
-def generate_answer(user_prompt):
+class AnswerGenerator:
     """
-    Generate an answer using the LLM.
+    Generates the final answer using the LLM.
     """
 
-    if user_prompt is None:
-        return "I couldn't find any relevant information."
+    def __init__(self, llm_service):
+        self.llm_service = llm_service
 
-    messages = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT
-        },
-        {
-            "role": "user",
-            "content": user_prompt
-        }
-    ]
+    def generate(self, prompt: str) -> str:
+        """
+        Generate an answer from the final RAG prompt.
+        """
 
-    return generate_response(messages)
+        return self.llm_service.generate(prompt)

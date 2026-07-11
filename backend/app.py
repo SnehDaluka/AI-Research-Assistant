@@ -1,3 +1,6 @@
+from backend.llm.service import LLMService
+from backend.llm.client import OllamaClient
+from backend.llm.generator import AnswerGenerator
 from backend.query.hybrid_rewriter import HybridRewriter
 from backend.query.llm_rewriter import LLMRewriter
 from backend.query.rule_based import RuleBasedRewriter
@@ -19,73 +22,122 @@ from backend.llm.generator import generate_answer
 
 
 def startup():
-    """
-    Initialize the application.
-    """
 
-    # Core Services
+    # --------------------------------
+    # Embeddings
+    # --------------------------------
+
     embedding_service = EmbeddingService()
-    document_store = DocumentStore(embedding_service)
 
-    # Search Components
+    # --------------------------------
+    # Document Store
+    # --------------------------------
+
+    document_store = DocumentStore(
+        embedding_service
+    )
+
+    # --------------------------------
+    # Semantic Search
+    # --------------------------------
+
     semantic_search = SemanticSearch(
         embedding_service,
         document_store,
     )
 
+    # --------------------------------
+    # Keyword Search
+    # --------------------------------
+
     keyword_search = KeywordSearch(
-        document_store,
+        document_store
     )
+
+    # --------------------------------
+    # Hybrid Search
+    # --------------------------------
 
     hybrid_search = HybridSearch(
         semantic_search,
         keyword_search,
     )
 
-    # Reranker
+    # --------------------------------
+    # Reranking
+    # --------------------------------
+
     reranking_service = RerankingService()
 
     reranker = CrossEncoderReranker(
-        reranking_service,
+        reranking_service
     )
 
-    # Ingestion Pipeline
-    pipeline = IngestionPipeline(
-        embedding_service,
-        document_store,
-        keyword_search,
+    # --------------------------------
+    # LLM
+    # --------------------------------
+
+    ollama_client = OllamaClient()
+
+    llm_service = LLMService(
+        ollama_client
     )
-    
-    # Query Rewriter
+
+    answer_generator = AnswerGenerator(
+        llm_service
+    )
+
+    # --------------------------------
+    # Query Rewriting
+    # --------------------------------
+
     rule_rewriter = RuleBasedRewriter()
 
-    llm_rewriter = LLMRewriter()
+    llm_rewriter = LLMRewriter(
+        llm_service
+    )
 
     query_rewriter = HybridRewriter(
         rule_rewriter,
         llm_rewriter,
     )
-    
+
+    # --------------------------------
     # Retrieval Pipeline
+    # --------------------------------
+
     retrieval_pipeline = RetrievalPipeline(
         hybrid_search,
         reranker,
-        query_rewriter
+        query_rewriter,
     )
-    
+
+    # --------------------------------
     # Context Builder
+    # --------------------------------
+
     context_builder = ContextBuilder()
 
-    # Load existing knowledge base or build a new one
+    # --------------------------------
+    # Ingestion
+    # --------------------------------
+
+    pipeline = IngestionPipeline(
+        embedding_service,
+        document_store,
+        keyword_search,
+    )
+
+    # --------------------------------
+    # Knowledge Base
+    # --------------------------------
+
     if document_store.exists():
 
-        print("=" * 60)
         print("Loading Knowledge Base...")
-        print("=" * 60)
 
         document_store.load()
 
-        # Rebuild BM25 using the loaded documents
         keyword_search.build_index()
 
         print(
@@ -105,10 +157,11 @@ def startup():
     return (
         retrieval_pipeline,
         context_builder,
+        answer_generator,
     )
 
 
-def chat_loop(retrieval_pipeline, context_builder):
+def chat_loop(retrieval_pipeline, context_builder, answer_generator):
     """
     Start the interactive chat.
     """
@@ -121,13 +174,20 @@ def chat_loop(retrieval_pipeline, context_builder):
             print("\nGoodbye!")
             break
 
-        results = retrieval_pipeline.search(query)
+        # Retrieve relevant documents
+        results = retrieval_pipeline.search(
+            query
+        )
         
         if DebugConfig.DEBUG and DebugConfig.SHOW_SEARCH_RESULTS:
             print_search_results(results)
             
-        context = context_builder.build(results)
+        # Build context
+        context = context_builder.build(
+            results
+        )
 
+        # Build final RAG prompt
         prompt = build_prompt(
             query,
             context,
@@ -138,7 +198,10 @@ def chat_loop(retrieval_pipeline, context_builder):
             print("-" * 60)
             print(prompt)
 
-        answer = generate_answer(prompt)
+        # Generate final answer
+        answer = answer_generator.generate(
+            prompt
+        )
 
         print("\nAnswer")
         print("-" * 60)
@@ -147,9 +210,9 @@ def chat_loop(retrieval_pipeline, context_builder):
 
 def main():
 
-    retrieval_pipeline, context_builder = startup()
+    retrieval_pipeline, context_builder, answer_generator = startup()
 
-    chat_loop(retrieval_pipeline, context_builder)
+    chat_loop(retrieval_pipeline, context_builder, answer_generator)
 
 
 if __name__ == "__main__":

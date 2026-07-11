@@ -3,14 +3,40 @@ from ollama import chat
 from backend.config import LLMConfig
 
 
-def generate_response(messages):
+class OllamaClient:
     """
-    Send chat messages to the LLM and return the response.
+    Low-level client responsible for communicating with Ollama.
     """
 
-    response = chat(
-        model=LLMConfig.MODEL,
-        messages=messages
-    )
+    def generate(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+    ) -> str:
 
-    return response["message"]["content"]
+        messages = []
+
+        if system_prompt:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": system_prompt,
+                }
+            )
+
+        messages.append(
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        )
+
+        response = chat(
+            model=LLMConfig.MODEL,
+            messages=messages,
+            options={
+                "temperature": LLMConfig.TEMPERATURE,
+            },
+        )
+
+        return response["message"]["content"]
