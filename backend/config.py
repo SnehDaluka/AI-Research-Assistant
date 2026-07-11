@@ -19,7 +19,7 @@ class RetrievalConfig:
     
 class ConversationConfig:
     MAX_STORED_MESSAGES = 10
-    GENERATION_HISTORY_MESSAGES = 6
+    GENERATION_HISTORY_MESSAGES = 4
     REWRITE_HISTORY_MESSAGES = 6
 
 class DebugConfig:
