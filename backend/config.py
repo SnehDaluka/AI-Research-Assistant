@@ -17,6 +17,11 @@ class RetrievalConfig:
     SIMILARITY_THRESHOLD = 0.5
     ENABLE_QUERY_REWRITING = True
     
+class ConversationConfig:
+    MAX_STORED_MESSAGES = 10
+    GENERATION_HISTORY_MESSAGES = 6
+    REWRITE_HISTORY_MESSAGES = 6
+
 class DebugConfig:
     DEBUG = True
     SHOW_SEARCH_RESULTS = True

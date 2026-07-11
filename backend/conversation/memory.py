@@ -1,14 +1,15 @@
+from backend.config import ConversationConfig
 from backend.conversation.message import Message
 
 
 class ConversationMemory:
     """
-    Stores recent conversation messages.
+    Stores recent conversation messages in memory.
     """
 
     def __init__(
         self,
-        max_messages: int = 10,
+        max_messages: int = ConversationConfig.MAX_STORED_MESSAGES,
     ):
         self.max_messages = max_messages
         self.messages = []
@@ -55,16 +56,22 @@ class ConversationMemory:
                 -self.max_messages:
             ]
 
-    def get_messages(self):
+    def get_messages(
+        self,
+        limit: int | None = ConversationConfig.GENERATION_HISTORY_MESSAGES,
+    ):
         """
-        Return a copy of conversation history.
+        Return a copy of recent conversation messages.
         """
 
-        return self.messages.copy()
+        if limit is None:
+            return self.messages.copy()
+
+        return self.messages[-limit:].copy()
 
     def clear(self):
         """
-        Clear conversation history.
+        Clear all conversation history.
         """
 
         self.messages.clear()

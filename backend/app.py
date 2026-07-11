@@ -1,3 +1,5 @@
+from backend.conversation.formatter import ConversationFormatter
+from backend.config import ConversationConfig
 from backend.conversation.memory import ConversationMemory
 from backend.llm.service import LLMService
 from backend.llm.client import OllamaClient
@@ -135,8 +137,10 @@ def startup():
     # --------------------------------
     
     conversation_memory = ConversationMemory(
-        max_messages=10
+        max_messages=ConversationConfig.MAX_STORED_MESSAGES
     )
+    
+    conversation_formatter = ConversationFormatter()
 
     # --------------------------------
     # Knowledge Base
@@ -168,11 +172,12 @@ def startup():
         retrieval_pipeline,
         context_builder,
         answer_generator,
-        conversation_memory
+        conversation_memory,
+        conversation_formatter
     )
 
 
-def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory):
+def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory, conversation_formatter):
     """
     Start the interactive chat.
     """
@@ -185,29 +190,67 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
             print("\nGoodbye!")
             break
         
-        # Get history BEFORE adding current question
-        history = (
-            conversation_memory.get_messages()
+        # --------------------------------
+        # History for query rewriting
+        # --------------------------------
+
+        rewrite_history = (
+            conversation_memory.get_messages(
+                limit=(
+                    ConversationConfig
+                    .REWRITE_HISTORY_MESSAGES
+                )
+            )
         )
 
-        # Retrieve relevant documents
+        # --------------------------------
+        # Retrieval
+        # --------------------------------
+
         results = retrieval_pipeline.search(
             query,
-            history,
+            rewrite_history,
         )
         
         if DebugConfig.DEBUG and DebugConfig.SHOW_SEARCH_RESULTS:
             print_search_results(results)
             
-        # Build RAG context
+        # --------------------------------
+        # Retrieved context
+        # --------------------------------
+
         context = context_builder.build(
             results
         )
 
-        # Build final RAG prompt
+        # --------------------------------
+        # History for answer generation
+        # --------------------------------
+
+        generation_history = (
+            conversation_memory.get_messages(
+                limit=(
+                    ConversationConfig
+                    .GENERATION_HISTORY_MESSAGES
+                )
+            )
+        )
+
+
+        formatted_conversation = (
+            conversation_formatter.format(
+                generation_history
+            )
+        )
+
+        # --------------------------------
+        # Final prompt
+        # --------------------------------
+
         prompt = build_prompt(
-            query,
-            context,
+            query=query,
+            context=context,
+            conversation=formatted_conversation,
         )
 
         if DebugConfig.DEBUG:
@@ -215,12 +258,18 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
             print("-" * 60)
             print(prompt)
 
-        # Generate final answer
+        # --------------------------------
+        # Generate answer
+        # --------------------------------
+
         answer = answer_generator.generate(
             prompt
         )
-        
-        # Store completed conversation turn
+
+        # --------------------------------
+        # Save completed turn
+        # --------------------------------
+
         conversation_memory.add_user_message(
             query
         )
@@ -229,6 +278,10 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
             answer
         )
 
+        # --------------------------------
+        # Display answer
+        # --------------------------------
+
         print("\nAnswer")
         print("-" * 60)
         print(answer)
@@ -236,9 +289,9 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
 
 def main():
 
-    retrieval_pipeline, context_builder, answer_generator, conversation_memory = startup()
+    retrieval_pipeline, context_builder, answer_generator, conversation_memory, conversation_formatter = startup()
 
-    chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory)
+    chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory, conversation_formatter)
 
 
 if __name__ == "__main__":
