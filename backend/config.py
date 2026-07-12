@@ -18,9 +18,10 @@ class RetrievalConfig:
     ENABLE_QUERY_REWRITING = True
     
 class ConversationConfig:
-    MAX_STORED_MESSAGES = 10
-    GENERATION_HISTORY_MESSAGES = 4
-    REWRITE_HISTORY_MESSAGES = 6
+    MAX_RECENT_TURNS = 5
+    SUMMARIZE_TURN_COUNT = 2
+    REWRITE_HISTORY_TURNS = 3
+    GENERATION_HISTORY_TURNS = 3
 
 class DebugConfig:
     DEBUG = True

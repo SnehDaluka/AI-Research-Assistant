@@ -1,77 +1,130 @@
 from backend.config import ConversationConfig
-from backend.conversation.message import Message
+from backend.conversation.turn import ConversationTurn
 
 
 class ConversationMemory:
     """
-    Stores recent conversation messages in memory.
+    Maintains conversation memory using:
+
+    1. Long-term summarized memory.
+    2. Recent complete conversation turns.
     """
 
     def __init__(
         self,
-        max_messages: int = ConversationConfig.MAX_STORED_MESSAGES,
+        summarizer,
+        max_recent_turns: int = ConversationConfig.MAX_RECENT_TURNS,
+        summarize_turn_count: int = ConversationConfig.SUMMARIZE_TURN_COUNT,
     ):
-        self.max_messages = max_messages
-        self.messages = []
-
-    def add_user_message(
-        self,
-        content: str,
-    ):
-        self._add_message(
-            role="user",
-            content=content,
-        )
-
-    def add_assistant_message(
-        self,
-        content: str,
-    ):
-        self._add_message(
-            role="assistant",
-            content=content,
-        )
-
-    def _add_message(
-        self,
-        role: str,
-        content: str,
-    ):
-        self.messages.append(
-            Message(
-                role=role,
-                content=content,
+        if max_recent_turns <= 0:
+            raise ValueError(
+                "max_recent_turns must be positive."
             )
+
+        if summarize_turn_count <= 0:
+            raise ValueError(
+                "summarize_turn_count must be positive."
+            )
+
+        if summarize_turn_count > max_recent_turns:
+            raise ValueError(
+                "summarize_turn_count cannot be greater "
+                "than max_recent_turns."
+            )
+
+        self.summarizer = summarizer
+
+        self.max_recent_turns = (
+            max_recent_turns
         )
 
-        self._trim()
+        self.summarize_turn_count = (
+            summarize_turn_count
+        )
 
-    def _trim(self):
-        """
-        Keep only the most recent messages.
-        """
+        self.turns = []
 
-        if len(self.messages) > self.max_messages:
-            self.messages = self.messages[
-                -self.max_messages:
-            ]
+        self.summary = ""
 
-    def get_messages(
+    def add_turn(
         self,
-        limit: int | None = ConversationConfig.GENERATION_HISTORY_MESSAGES,
+        user: str,
+        assistant: str,
     ):
         """
-        Return a copy of recent conversation messages.
+        Add one complete conversation turn.
+        """
+
+        turn = ConversationTurn(
+            user=user,
+            assistant=assistant,
+        )
+
+        self.turns.append(turn)
+
+        self._summarize_if_needed()
+
+    def _summarize_if_needed(self):
+        """
+        Summarize the oldest turns when recent
+        conversation memory exceeds its limit.
+        """
+
+        if len(self.turns) <= self.max_recent_turns:
+            return
+
+        turns_to_summarize = self.turns[
+            :self.summarize_turn_count
+        ]
+
+        try:
+            updated_summary = (
+                self.summarizer.summarize(
+                    turns=turns_to_summarize,
+                    previous_summary=self.summary,
+                    )
+            )
+
+        except Exception as error:
+            print(
+                f"Conversation summarization failed: "
+                f"{error}"
+            )
+            return
+
+        self.summary = updated_summary
+
+        self.turns = self.turns[
+            self.summarize_turn_count:
+        ]
+
+    def get_recent_turns(
+        self,
+        limit: int | None = None,
+    ):
+        """
+        Return recent conversation turns.
         """
 
         if limit is None:
-            return self.messages.copy()
+            return self.turns.copy()
 
-        return self.messages[-limit:].copy()
+        if limit <= 0:
+            return []
+
+        return self.turns[-limit:].copy()
+
+    def get_summary(self) -> str:
+        """
+        Return the long-term conversation summary.
+        """
+
+        return self.summary
 
     def clear(self):
         """
-        Clear all conversation history.
+        Clear all conversation memory.
         """
 
-        self.messages.clear()
+        self.turns.clear()
+        self.summary = ""

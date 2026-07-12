@@ -10,7 +10,8 @@ class QueryRewriter(ABC):
     def rewrite(
         self,
         query: str,
-        history=None,
+        recent_turns = None,
+        summary: str = ""
     ) -> str:
         """
         Rewrite the user's query.

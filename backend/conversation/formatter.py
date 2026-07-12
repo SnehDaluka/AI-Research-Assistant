@@ -1,26 +1,27 @@
 class ConversationFormatter:
     """
-    Formats conversation messages for LLM prompts.
+    Formats conversation turns for LLM prompts.
     """
 
     def format(
         self,
-        messages,
+        turns,
     ) -> str:
 
-        if not messages:
+        if not turns:
             return "No previous conversation."
 
-        formatted_messages = []
+        formatted_turns = []
 
-        for message in messages:
+        for turn in turns:
 
-            role = message.role.capitalize()
-
-            formatted_messages.append(
-                f"{role}: {message.content}"
+            formatted_turns.append(
+                (
+                    f"User: {turn.user}\n\n"
+                    f"Assistant: {turn.assistant}"
+                )
             )
 
         return "\n\n".join(
-            formatted_messages
+            formatted_turns
         )

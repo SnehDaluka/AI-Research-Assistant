@@ -14,12 +14,18 @@ class HybridRewriter(QueryRewriter):
         self.rule_rewriter = rule_rewriter
         self.llm_rewriter = llm_rewriter
 
-    def rewrite(self, query: str, history=None) -> str:
+    def rewrite(
+        self,
+        query: str,
+        recent_turns=None,
+        summary: str = "",
+    ) -> str:
 
         standalone_query = (
             self.llm_rewriter.rewrite(
-                query,
-                history,
+                query=query,
+                recent_turns=recent_turns,
+                summary=summary
             )
         )
 

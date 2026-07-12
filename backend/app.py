@@ -1,3 +1,4 @@
+from backend.conversation.summarizer import ConversationSummarizer
 from backend.conversation.formatter import ConversationFormatter
 from backend.config import ConversationConfig
 from backend.conversation.memory import ConversationMemory
@@ -89,6 +90,38 @@ def startup():
     answer_generator = AnswerGenerator(
         llm_service
     )
+    
+    
+    # --------------------------------
+    # Conversation Memory
+    # --------------------------------
+    
+    conversation_formatter = (
+        ConversationFormatter()
+    )
+
+    conversation_summarizer = (
+        ConversationSummarizer(
+            llm_service=llm_service,
+            conversation_formatter=(
+                conversation_formatter
+            ),
+        )
+    )
+
+    conversation_memory = (
+        ConversationMemory(
+            summarizer=conversation_summarizer,
+            max_recent_turns=(
+                ConversationConfig.MAX_RECENT_TURNS
+            ),
+            summarize_turn_count=(
+                ConversationConfig
+                .SUMMARIZE_TURN_COUNT
+            ),
+        )
+    )
+    
 
     # --------------------------------
     # Query Rewriting
@@ -97,7 +130,7 @@ def startup():
     rule_rewriter = RuleBasedRewriter()
 
     llm_rewriter = LLMRewriter(
-        llm_service
+        llm_service, conversation_formatter
     )
 
     query_rewriter = HybridRewriter(
@@ -130,17 +163,6 @@ def startup():
         document_store,
         keyword_search,
     )
-    
-    
-    # --------------------------------
-    # Conversation Memory
-    # --------------------------------
-    
-    conversation_memory = ConversationMemory(
-        max_messages=ConversationConfig.MAX_STORED_MESSAGES
-    )
-    
-    conversation_formatter = ConversationFormatter()
 
     # --------------------------------
     # Knowledge Base
@@ -194,6 +216,10 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
         # History for query rewriting
         # --------------------------------
 
+        summary = (
+            conversation_memory.get_summary()
+        )
+        
         rewrite_history = (
             conversation_memory.get_messages(
                 limit=(
@@ -208,8 +234,9 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
         # --------------------------------
 
         results = retrieval_pipeline.search(
-            query,
-            rewrite_history,
+            query=query,
+            history=rewrite_history,
+            summary=summary
         )
         
         if DebugConfig.DEBUG and DebugConfig.SHOW_SEARCH_RESULTS:
@@ -251,6 +278,7 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
             query=query,
             context=context,
             conversation=formatted_conversation,
+            conversation_summary=summary
         )
 
         if DebugConfig.DEBUG:
@@ -270,12 +298,9 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
         # Save completed turn
         # --------------------------------
 
-        conversation_memory.add_user_message(
-            query
-        )
-
-        conversation_memory.add_assistant_message(
-            answer
+        conversation_memory.add_turn(
+            user=query,
+            assistant=answer,
         )
 
         # --------------------------------
