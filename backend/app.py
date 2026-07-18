@@ -1,3 +1,6 @@
+from backend.retrieval.rank_fusion import ReciprocalRankFusion
+from backend.config import ObservabilityConfig
+from backend.observability.formatter import TraceFormatter
 from backend.conversation.summarizer import ConversationSummarizer
 from backend.conversation.formatter import ConversationFormatter
 from backend.config import ConversationConfig
@@ -22,10 +25,11 @@ from backend.embeddings.service import EmbeddingService
 from backend.retrieval.document_store import DocumentStore
 from backend.ingestion.pipeline import IngestionPipeline
 from backend.prompts.builder import build_prompt
-from backend.llm.generator import generate_answer
 
 
 def startup():
+    
+    trace_formatter = TraceFormatter()
 
     # --------------------------------
     # Embeddings
@@ -62,9 +66,12 @@ def startup():
     # Hybrid Search
     # --------------------------------
 
+    rank_fusion = ReciprocalRankFusion()
+
     hybrid_search = HybridSearch(
-        semantic_search,
-        keyword_search,
+        semantic_search=semantic_search,
+        keyword_search=keyword_search,
+        rank_fusion=rank_fusion,
     )
 
     # --------------------------------
@@ -195,11 +202,12 @@ def startup():
         context_builder,
         answer_generator,
         conversation_memory,
-        conversation_formatter
+        conversation_formatter,
+        trace_formatter
     )
 
 
-def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory, conversation_formatter):
+def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory, conversation_formatter, trace_formatter):
     """
     Start the interactive chat.
     """
@@ -221,10 +229,10 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
         )
         
         rewrite_history = (
-            conversation_memory.get_messages(
+            conversation_memory.get_recent_turns(
                 limit=(
                     ConversationConfig
-                    .REWRITE_HISTORY_MESSAGES
+                    .GENERATION_HISTORY_TURNS
                 )
             )
         )
@@ -233,11 +241,16 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
         # Retrieval
         # --------------------------------
 
-        results = retrieval_pipeline.search(
+        results, trace = retrieval_pipeline.search(
             query=query,
-            history=rewrite_history,
+            recent_turns=rewrite_history,
             summary=summary
         )
+        
+        if ObservabilityConfig.ENABLE_TRACING:
+            print(
+                trace_formatter.format(trace)
+            )
         
         if DebugConfig.DEBUG and DebugConfig.SHOW_SEARCH_RESULTS:
             print_search_results(results)
@@ -255,10 +268,10 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
         # --------------------------------
 
         generation_history = (
-            conversation_memory.get_messages(
+            conversation_memory.get_recent_turns(
                 limit=(
                     ConversationConfig
-                    .GENERATION_HISTORY_MESSAGES
+                    .GENERATION_HISTORY_TURNS
                 )
             )
         )
@@ -314,9 +327,9 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
 
 def main():
 
-    retrieval_pipeline, context_builder, answer_generator, conversation_memory, conversation_formatter = startup()
+    retrieval_pipeline, context_builder, answer_generator, conversation_memory, conversation_formatter, trace_formatter = startup()
 
-    chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory, conversation_formatter)
+    chat_loop(retrieval_pipeline, context_builder, answer_generator, conversation_memory, conversation_formatter, trace_formatter)
 
 
 if __name__ == "__main__":

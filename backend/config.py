@@ -24,5 +24,8 @@ class ConversationConfig:
     GENERATION_HISTORY_TURNS = 3
 
 class DebugConfig:
-    DEBUG = True
-    SHOW_SEARCH_RESULTS = True
+    DEBUG = False
+    SHOW_SEARCH_RESULTS = False
+    
+class ObservabilityConfig:
+    ENABLE_TRACING = True
