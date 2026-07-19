@@ -47,7 +47,30 @@ An intelligent, interactive Retrieval-Augmented Generation (RAG) system built in
 
 ## Setup & Installation
 
-### 1. Backend Setup
+### 1. Environment Variables
+
+Before running the application, you need to configure your environment variables for both the backend and frontend. You can copy the example files:
+
+**Backend (`backend/.env`):**
+```bash
+cp backend/.env.example backend/.env
+```
+Edit `backend/.env` to include your Google OAuth Client ID and a secure JWT Secret:
+```env
+GOOGLE_CLIENT_ID=your_google_client_id_here
+JWT_SECRET=your_super_secret_jwt_key_here
+```
+
+**Frontend (`frontend/.env`):**
+```bash
+cp frontend/.env.example frontend/.env
+```
+Edit `frontend/.env` to include your Google OAuth Client ID:
+```env
+VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
+```
+
+### 2. Backend Setup
 
 1. **Clone the repository:**
    ```bash
@@ -69,7 +92,7 @@ An intelligent, interactive Retrieval-Augmented Generation (RAG) system built in
    pip install -r requirements.txt
    ```
 
-### 2. Frontend Setup
+### 3. Frontend Setup
 
 1. **Navigate to the frontend directory:**
    ```bash
@@ -98,7 +121,7 @@ In a new terminal window, navigate to the `frontend` directory and start the Vit
 cd frontend
 npm run dev
 ```
-Open the provided URL (usually `http://localhost:5173`) in your browser to access the AI Research Assistant.
+Open the provided URL (usually `http://localhost:5173`) in your browser. You will be prompted to log in with your Google account before accessing the AI Research Assistant.
 
 ## Configuration
 

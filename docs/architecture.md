@@ -64,13 +64,41 @@ User Query -> Query Embedding -> FAISS Search -> Top-K Filtering -> Prompt Build
 - **Prompt Builder**: Constructs the LLM prompt. It injects the retrieved text alongside its metadata (Source and Page) to enable the LLM to generate citations. It includes strict system instructions to prevent hallucination.
 - **LLM Generator (`Ollama`)**: Submits the prompt to a locally hosted LLM (e.g., `qwen2.5:3b`) for private, offline, and cost-free natural language generation.
 
+## 5. Web Application and API
+
+The application has been upgraded from a local CLI script to a full-fledged web application.
+
+### FastAPI Backend
+The backend is powered by **FastAPI** (`backend/api/app.py`), providing an asynchronous, RESTful API layer over the core RAG services. 
+Key endpoints include:
+- `POST /auth/google`: Verifies Google credentials and issues a custom JWT token.
+- `POST /documents/`: Handles file uploads (PDFs) and triggers the ingestion pipeline.
+- `POST /chat/ask`: Submits a user query to the RAG pipeline and returns the generated answer with sources.
+
+### React + Vite Frontend
+The frontend (`frontend/`) is a modern React Single Page Application (SPA).
+- **State Management**: Uses Redux Toolkit (RTK) Query for efficient caching and API interactions.
+- **Routing**: Uses React Router to protect routes and handle navigation.
+- **Styling**: Built with Material UI (MUI) for a clean, responsive, dark-mode user interface.
+
 ---
 
-## 5. Directory Structure
+## 6. Authentication & Security
+
+The application uses a secure authentication flow based on **Google OAuth 2.0**:
+1. **Frontend Login**: The user authenticates with Google via the `@react-oauth/google` provider.
+2. **Backend Validation**: The frontend sends the Google credential to the backend, which verifies the token signature using the `google-auth` library to ensure authenticity.
+3. **JWT Session**: Upon successful validation, the backend issues an application-specific JWT (JSON Web Token) signed with a custom secret (`JWT_SECRET`).
+4. **Protected Routes**: The frontend stores the JWT and attaches it to all subsequent API requests. Backend endpoints use a FastAPI dependency (`get_current_user`) to decode and validate the token, ensuring that only authorized users can access the knowledge base and chat.
+
+---
+
+## 7. Directory Structure
 
 ```text
 backend/
-├── app.py                # Main application lifecycle (startup & chat_loop)
+├── api/                  # FastAPI application, routers, schemas, and dependencies
+├── app.py                # Legacy CLI application (deprecated)
 ├── config.py             # Configuration (Top-K, thresholds, models, debug mode)
 ├── documents/            # Source PDF files to be ingested
 ├── embeddings/           # Embedding generation and normalization
@@ -79,13 +107,14 @@ backend/
 ├── models/               # Domain models (Document, Page, SearchResult, etc.)
 ├── prompts/              # Prompt templates and builder logic
 ├── retrieval/            # FAISS DocumentStore and search logic
+├── services/             # Application services tying domain logic together
 ├── storage/              # Persisted knowledge base (FAISS index & pickled metadata)
 └── utils/                # Debugging and display utilities
 ```
 
 ---
 
-## 6. Debugging and Observability
+## 8. Debugging and Observability
 
 Retrieval quality dictates answer quality. To facilitate debugging without cluttering the user interface, the system implements a **Developer Mode** (`DebugConfig.DEBUG`).
 
