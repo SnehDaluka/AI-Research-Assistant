@@ -252,8 +252,8 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
                 trace_formatter.format(trace)
             )
         
-        if DebugConfig.DEBUG and DebugConfig.SHOW_SEARCH_RESULTS:
-            print_search_results(results)
+        # if DebugConfig.DEBUG and DebugConfig.SHOW_SEARCH_RESULTS:
+        #     print_search_results(results)
             
         # --------------------------------
         # Retrieved context
@@ -293,11 +293,6 @@ def chat_loop(retrieval_pipeline, context_builder, answer_generator, conversatio
             conversation=formatted_conversation,
             conversation_summary=summary
         )
-
-        if DebugConfig.DEBUG:
-            print("\nPrompt")
-            print("-" * 60)
-            print(prompt)
 
         # --------------------------------
         # Generate answer
