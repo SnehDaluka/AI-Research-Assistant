@@ -1,6 +1,6 @@
 # AI Research Assistant
 
-An intelligent, interactive Retrieval-Augmented Generation (RAG) system built in Python. This research assistant uses a combination of semantic search, keyword search, and an LLM to answer complex queries over a local knowledge base.
+An intelligent, interactive Retrieval-Augmented Generation (RAG) system built in Python and React. This research assistant uses a combination of semantic search, keyword search, and a local LLM to answer complex queries over a local knowledge base.
 
 ## Features
 
@@ -8,30 +8,37 @@ An intelligent, interactive Retrieval-Augmented Generation (RAG) system built in
 - **Advanced Query Rewriting**: Uses both Rule-Based and LLM-driven query rewriting to enhance search intent and accuracy.
 - **Reranking**: Utilizes a Cross-Encoder (`ms-marco-MiniLM-L-6-v2`) to accurately rerank retrieved documents.
 - **Local LLM Integration**: Powered by `qwen2.5:3b` for answering questions, providing local, privacy-first AI responses.
-- **Document Ingestion Pipeline**: Automatically ingests and indexes documents from a local directory.
-- **Interactive CLI**: Simple command-line chat interface to interact with your knowledge base.
+- **Document Ingestion API**: Automatically ingest and index documents via a RESTful API endpoint.
+- **Modern Web Interface**: A sleek, dark-mode responsive frontend built with React, Material UI, and Redux Toolkit Query.
+- **RESTful API**: Fast and asynchronous API powered by FastAPI.
 
 ## Tech Stack
 
-- **Language**: Python
+- **Backend**: Python, FastAPI
+- **Frontend**: React, Vite, Material UI (MUI), Redux Toolkit (RTK) Query, React Router
 - **Embeddings**: `sentence-transformers/all-MiniLM-L6-v2`
 - **Reranker**: `cross-encoder/ms-marco-MiniLM-L-6-v2`
-- **LLM**: Qwen 2.5 3B
+- **LLM**: Qwen 2.5 3B (via Ollama)
 - **Vector Search**: NumPy / FAISS-based semantic search
 
 ## Project Structure
 
 ```
-├── backend/            # Core backend logic
-│   ├── app.py          # Main application and chat loop
+├── backend/            # Python API & Core logic
+│   ├── api/            # FastAPI application and routers
+│   ├── app.py          # Legacy CLI application
 │   ├── config.py       # Configuration settings
-│   ├── documents/      # Directory for documents to ingest
+│   ├── documents/      # Uploaded documents storage
 │   ├── embeddings/     # Embedding service and models
 │   ├── ingestion/      # Document ingestion pipeline
 │   ├── llm/            # LLM client and generator
 │   ├── query/          # Query rewriters (Rule-based, LLM, Hybrid)
 │   ├── reranking/      # Cross-encoder reranking service
 │   └── retrieval/      # Semantic, Keyword, and Hybrid search logic
+├── frontend/           # React web application
+│   ├── src/            # Source code (Components, API slice, Theme)
+│   ├── package.json    # Node dependencies
+│   └── vite.config.ts  # Vite configuration
 ├── docs/               # Documentation
 ├── data/               # Persistent data / Knowledge base
 ├── notebooks/          # Jupyter notebooks for experimentation
@@ -39,6 +46,8 @@ An intelligent, interactive Retrieval-Augmented Generation (RAG) system built in
 ```
 
 ## Setup & Installation
+
+### 1. Backend Setup
 
 1. **Clone the repository:**
    ```bash
@@ -60,33 +69,39 @@ An intelligent, interactive Retrieval-Augmented Generation (RAG) system built in
    pip install -r requirements.txt
    ```
 
-4. **Prepare Documents:**
-   Place any text documents or PDFs you want the assistant to learn from into the `backend/documents/` directory.
+### 2. Frontend Setup
+
+1. **Navigate to the frontend directory:**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install node dependencies:**
+   ```bash
+   npm install
+   ```
 
 ## Usage
 
-Start the AI Research Assistant by running the main application script:
+You need to run both the backend API and the frontend development server to use the web interface.
 
+### 1. Start the Backend API
+From the root directory, start the FastAPI server:
 ```bash
-python -m backend.app
-# or
-python backend/app.py
+uvicorn backend.api.app:app --reload
 ```
+The API will be available at `http://localhost:8000`.
 
-On the first run, the system will ingest the documents in `backend/documents/` and build the search indices. After loading the knowledge base, you will enter the interactive chat loop:
-
-```text
-============================================================
-Loading Knowledge Base...
-============================================================
-Loaded X documents.
-
-Ask a question ('exit' to quit): What is this document about?
+### 2. Start the Frontend
+In a new terminal window, navigate to the `frontend` directory and start the Vite development server:
+```bash
+cd frontend
+npm run dev
 ```
+Open the provided URL (usually `http://localhost:5173`) in your browser to access the AI Research Assistant.
 
 ## Configuration
 
-You can tweak the parameters in `backend/config.py`:
+You can tweak the backend parameters in `backend/config.py`:
 - `RetrievalConfig`: Change `SEARCH_TOP_K`, `RERANK_TOP_K`, and toggle query rewriting.
 - `LLMConfig`: Change the target LLM or temperature.
-- `DebugConfig`: Enable or disable debug logs during the chat loop.
