@@ -1,13 +1,17 @@
-import { Box, Drawer, List, ListItem, Typography, Divider, Avatar, IconButton } from '@mui/material';
+import { useState } from 'react';
+import { Box, Drawer, List, ListItem, Typography, Divider, Avatar, IconButton, Button } from '@mui/material';
 import { Outlet, useNavigate } from 'react-router-dom';
 import DocumentUploader from './DocumentUploader';
+import DocumentList from './DocumentList';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ChatIcon from '@mui/icons-material/Chat';
 import LogoutIcon from '@mui/icons-material/Logout';
+import FolderIcon from '@mui/icons-material/Folder';
 
 const drawerWidth = 280;
 
 export default function Layout() {
+  const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false);
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
   const navigate = useNavigate();
@@ -45,7 +49,7 @@ export default function Layout() {
 
             {user && (
               <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, m: 2, mb: 0, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)' }}>
-                <Avatar src={user.picture || undefined} sx={{ width: 36, height: 36, bgcolor: 'primary.main' }} imgProps={{ referrerPolicy: "no-referrer" }}>
+                <Avatar src={user.picture || undefined} sx={{ width: 36, height: 36, bgcolor: 'primary.main' }} imgprops={{ referrerPolicy: "no-referrer" }}>
                   {!user.picture && user.name ? user.name.charAt(0).toUpperCase() : ''}
                 </Avatar>
                 <Box sx={{ overflow: 'hidden', flexGrow: 1 }}>
@@ -67,21 +71,56 @@ export default function Layout() {
               </ListItem>
             </List>
             
+            <Box sx={{ px: 3, pt: 2 }}>
+              <DocumentUploader />
+            </Box>
+
             <Box sx={{ p: 3, mt: 'auto' }}>
               <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 3, mx: -3 }} />
-              <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 1, display: 'block' }}>
-                KNOWLEDGE BASE
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center' }}>
+                AI Research Assistant v1.0
               </Typography>
-              <DocumentUploader />
             </Box>
         </Box>
       </Drawer>
       <Box
         component="main"
-        sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}
+        sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', position: 'relative' }}
       >
-        <Outlet />
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', minHeight: '64px' }}>
+          <Button 
+            variant="outlined" 
+            onClick={() => setIsRightDrawerOpen(true)}
+            startIcon={<FolderIcon />}
+            sx={{ color: 'text.secondary', borderColor: 'rgba(255,255,255,0.1)' }}
+          >
+            Knowledge Base
+          </Button>
+        </Box>
+        <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+          <Outlet />
+        </Box>
       </Box>
+
+      <Drawer
+        anchor="right"
+        open={isRightDrawerOpen}
+        onClose={() => setIsRightDrawerOpen(false)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            backgroundColor: '#0f172a',
+            borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
+            p: 3
+          },
+        }}
+      >
+        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 1, display: 'block' }}>
+          KNOWLEDGE BASE
+        </Typography>
+        <DocumentList />
+      </Drawer>
     </Box>
   );
 }

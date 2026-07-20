@@ -1,9 +1,8 @@
 import { useRef } from 'react';
 import { Button, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import Swal from 'sweetalert2';
-import { useUploadDocumentMutation, useClearDocumentsMutation } from '../api/apiSlice';
+import { useUploadDocumentMutation } from '../api/apiSlice';
 
 const Toast = Swal.mixin({
   toast: true,
@@ -17,7 +16,6 @@ const Toast = Swal.mixin({
 
 export default function DocumentUploader() {
   const [uploadDocument, { isLoading }] = useUploadDocumentMutation();
-  const [clearDocuments, { isLoading: isClearing }] = useClearDocumentsMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,29 +45,6 @@ export default function DocumentUploader() {
     }
   };
 
-  const handleClear = () => {
-    Swal.fire({
-      title: 'Are you sure?',
-      text: "This will delete all indexed documents from the knowledge base!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ec4899',
-      cancelButtonColor: '#6366f1',
-      confirmButtonText: 'Yes',
-      background: '#1e293b',
-      color: '#fff'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          await clearDocuments().unwrap();
-          Toast.fire({ icon: 'success', title: 'Knowledge base cleared.' });
-        } catch (err) {
-          Toast.fire({ icon: 'error', title: 'Failed to clear knowledge base.' });
-        }
-      }
-    });
-  };
-
   return (
     <Box sx={{ mt: 2 }}>
       <input
@@ -84,7 +59,7 @@ export default function DocumentUploader() {
         component="span"
         fullWidth
         startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
-        disabled={isLoading || isClearing}
+        disabled={isLoading}
         onClick={() => fileInputRef.current?.click()}
         sx={{
             background: 'linear-gradient(45deg, #6366f1 30%, #ec4899 90%)',
@@ -96,18 +71,6 @@ export default function DocumentUploader() {
         }}
       >
         {isLoading ? 'Ingesting...' : 'Upload Document'}
-      </Button>
-      
-      <Button
-        variant="outlined"
-        color="error"
-        fullWidth
-        startIcon={isClearing ? <CircularProgress size={20} color="inherit" /> : <DeleteSweepIcon />}
-        disabled={isLoading || isClearing}
-        onClick={handleClear}
-        sx={{ mt: 2 }}
-      >
-        Clear Knowledge Base
       </Button>
     </Box>
   );

@@ -29,14 +29,14 @@ from backend.retrieval.document_store import DocumentStore
 from backend.ingestion.pipeline import IngestionPipeline
 
 
-def startup() -> Application:
+def startup(user_email: str = "default") -> Application:
     """
     Build the application and all long-lived services.
     """
 
     trace_formatter = TraceFormatter()
     embedding_service = EmbeddingService()
-    document_store = DocumentStore(embedding_service)
+    document_store = DocumentStore(embedding_service, user_email)
 
     semantic_search = SemanticSearch(embedding_service, document_store)
     keyword_search = KeywordSearch(document_store)
@@ -82,7 +82,9 @@ def startup() -> Application:
         keyword_search.build_index()
         print(f"Loaded {document_store.count()} documents.")
     else:
-        ingestion_pipeline.ingest_directory("backend/documents")
+        import os
+        os.makedirs(f"backend/documents/{user_email}", exist_ok=True)
+        ingestion_pipeline.ingest_directory(f"backend/documents/{user_email}")
         document_store.save()
         print("Knowledge Base saved.")
 

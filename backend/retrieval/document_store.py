@@ -8,10 +8,7 @@ from backend.config import RetrievalConfig
 from backend.models.document import Document
 from backend.models.search_result import SearchResult
 
-from backend.storage.paths import (
-    INDEX_PATH,
-    DOCUMENTS_PATH,
-)
+from backend.storage.paths import get_user_storage_dir
 
 
 class DocumentStore:
@@ -21,7 +18,8 @@ class DocumentStore:
     and clearing documents.
     """
 
-    def __init__(self, embedding_service):
+    def __init__(self, embedding_service, user_email: str = "default"):
+        self.user_email = user_email
         self.documents = []
         self.embedding_service = embedding_service
         self.index = faiss.IndexFlatIP(self.embedding_service.dimension())
@@ -88,17 +86,40 @@ class DocumentStore:
             self.embedding_service.dimension()
         )
         
+    def remove_document(self, filename: str):
+        """
+        Remove a specific document from the store and rebuild the index.
+        """
+        indices_to_keep = [i for i, doc in enumerate(self.documents) if doc.source.filename != filename]
+        
+        if len(indices_to_keep) == len(self.documents):
+            return # Document not found
+            
+        new_documents = []
+        new_embeddings = []
+        
+        for i in indices_to_keep:
+            new_documents.append(self.documents[i])
+            # Reconstruct the original embedding vector
+            new_embeddings.append(self.index.reconstruct(i))
+            
+        self.documents = new_documents
+        self.index = faiss.IndexFlatIP(self.embedding_service.dimension())
+        if new_embeddings:
+            self.index.add(np.array(new_embeddings))
+        
     def save(self):
         """
         Persist the FAISS index and documents.
         """
+        storage_dir = get_user_storage_dir(self.user_email)
 
         faiss.write_index(
             self.index,
-            str(INDEX_PATH),
+            str(storage_dir / "faiss.index"),
         )
 
-        with open(DOCUMENTS_PATH, "wb") as file:
+        with open(storage_dir / "documents.pkl", "wb") as file:
             pickle.dump(
                 self.documents,
                 file,
@@ -108,20 +129,18 @@ class DocumentStore:
         """
         Load the FAISS index and documents.
         """
+        storage_dir = get_user_storage_dir(self.user_email)
 
         self.index = faiss.read_index(
-            str(INDEX_PATH)
+            str(storage_dir / "faiss.index")
         )
 
-        with open(DOCUMENTS_PATH, "rb") as file:
+        with open(storage_dir / "documents.pkl", "rb") as file:
             self.documents = pickle.load(file)
 
     def exists(self):
         """
         Return True if a persisted knowledge base exists.
         """
-
-        return (
-            INDEX_PATH.exists()
-            and DOCUMENTS_PATH.exists()
-        )
+        storage_dir = get_user_storage_dir(self.user_email)
+        return (storage_dir / "faiss.index").exists() and (storage_dir / "documents.pkl").exists()

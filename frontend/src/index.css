@@ -34,3 +34,8 @@ body {
   66.667% { box-shadow: 9984px 0 0 0 #6366f1, 9999px 0 0 0 #6366f1, 10014px 0 0 0 #6366f1; }
   100% { box-shadow: 9984px 0 0 0 #6366f1, 9999px 0 0 0 #6366f1, 10014px 0 0 0 #6366f1; }
 }
+
+/* Fix SweetAlert z-index overlapping with MUI Drawer (z-index 1200) */
+.swal2-container {
+  z-index: 1400 !important;
+}

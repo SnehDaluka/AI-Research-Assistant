@@ -1,9 +1,10 @@
 from pathlib import Path
 
-STORAGE_DIR = Path("backend/storage")
+import hashlib
 
-STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-
-INDEX_PATH = STORAGE_DIR / "faiss.index"
-
-DOCUMENTS_PATH = STORAGE_DIR / "documents.pkl"
+def get_user_storage_dir(user_email: str) -> Path:
+    # Use a safe hash for the directory name to avoid invalid characters from emails
+    safe_dir = hashlib.md5(user_email.encode()).hexdigest()
+    storage_dir = Path(f"backend/storage/{safe_dir}")
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    return storage_dir

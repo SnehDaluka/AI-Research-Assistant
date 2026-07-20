@@ -69,17 +69,18 @@ class ResearchAssistantService:
             conversation_summary=summary
         )
         
-        answer = self.answer_generator.generate(prompt)
+        import re
         
-        memory.add_turn(user=question, assistant=answer)
+        answer = self.answer_generator.generate(prompt)
         
         sources = []
         seen = set()
         for result in results:
             filename = result.document.source.filename
             
-            # Only include the source if the LLM actually cited it in the generated answer
-            if filename in answer:
+            # Check if LLM cited it. Loosen heuristic so sources aren't hidden if LLM omits extension
+            # or uses a generic bracket citation.
+            if filename in answer or filename.replace('.pdf', '') in answer or "[" in answer:
                 key = (filename, result.document.page)
                 if key not in seen:
                     seen.add(key)
@@ -90,8 +91,18 @@ class ResearchAssistantService:
                             score=result.score
                         )
                     )
+
+        # Clean citations from the text so they don't double up with the UI chips
+        cleaned_answer = re.sub(r'\[[^\]]*(?:Page|page|PDF|pdf)\s*\d*[^\]]*\]', '', answer)
+        cleaned_answer = re.sub(r'\[\d+\]', '', cleaned_answer)
+        for result in results:
+            filename = result.document.source.filename
+            stem = filename.replace('.pdf', '')
+            cleaned_answer = cleaned_answer.replace(f"[{filename}]", "").replace(f"[{stem}]", "")
             
+        memory.add_turn(user=question, assistant=cleaned_answer)
+        
         return ChatResponse(
-            answer=answer,
+            answer=cleaned_answer,
             sources=sources
         )

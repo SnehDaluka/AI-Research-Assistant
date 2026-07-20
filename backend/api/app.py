@@ -12,9 +12,17 @@ from backend.api.routers import (
 )
 
 app = FastAPI(
-    title="AI Research Assistant",
-    description="Local RAG-based AI Research Assistant",
+    title="AI Research Assistant API",
+    description="""
+    API for the AI Research Assistant.
+    
+    ## Authentication
+    Most endpoints are protected by JWT. You can obtain a JWT token by logging in via Google at the `/auth/google` endpoint. 
+    Once you have the token, click the **Authorize** button below and enter it to test the API directly from this Swagger interface!
+    """,
     version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 app.add_middleware(

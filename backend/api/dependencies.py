@@ -1,19 +1,11 @@
 from functools import lru_cache
-
-from backend.bootstrap import startup
-
-
-@lru_cache
-def get_application():
-
-    return startup()
-
-from fastapi import HTTPException, Security
+from fastapi import HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
-
 import os
 from dotenv import load_dotenv
+
+from backend.bootstrap import startup
 
 load_dotenv("backend/.env")
 
@@ -29,3 +21,11 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+application_cache = {}
+
+def get_application(current_user=Depends(get_current_user)):
+    user_email = current_user.get("email", "default")
+    if user_email not in application_cache:
+        application_cache[user_email] = startup(user_email)
+    return application_cache[user_email]
