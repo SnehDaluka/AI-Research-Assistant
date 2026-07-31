@@ -52,12 +52,14 @@ class KeywordSearch:
             enumerate(scores),
             key=lambda item: item[1],
             reverse=True,
-        )[:top_k]
+        )
 
         results = []
 
         for index, score in ranked:
-
+            if score <= 0.0:
+                continue
+                
             document = self.document_store.documents[index]
 
             results.append(
@@ -66,5 +68,8 @@ class KeywordSearch:
                     score=float(score),
                 )
             )
+            
+            if len(results) >= top_k:
+                break
 
         return results

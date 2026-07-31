@@ -73,14 +73,20 @@ class ResearchAssistantService:
         
         answer = self.answer_generator.generate(prompt)
         
+        from backend.config import RetrievalConfig
+        relevant_results = [
+            r for r in results if r.score >= RetrievalConfig.SIMILARITY_THRESHOLD
+        ]
+        
         sources = []
         seen = set()
-        for result in results:
+        for index, result in enumerate(relevant_results, start=1):
             filename = result.document.source.filename
+            stem = filename.replace('.pdf', '')
+            doc_marker = f"[Document {index}]"
             
-            # Check if LLM cited it. Loosen heuristic so sources aren't hidden if LLM omits extension
-            # or uses a generic bracket citation.
-            if filename in answer or filename.replace('.pdf', '') in answer or "[" in answer:
+            # Check if LLM cited it by Document marker, or filename
+            if doc_marker in answer or filename in answer or stem in answer:
                 key = (filename, result.document.page)
                 if key not in seen:
                     seen.add(key)
@@ -95,6 +101,8 @@ class ResearchAssistantService:
         # Clean citations from the text so they don't double up with the UI chips
         cleaned_answer = re.sub(r'\[[^\]]*(?:Page|page|PDF|pdf)\s*\d*[^\]]*\]', '', answer)
         cleaned_answer = re.sub(r'\[\d+\]', '', cleaned_answer)
+        cleaned_answer = re.sub(r'\[Document\s*\d+\]', '', cleaned_answer, flags=re.IGNORECASE)
+        
         for result in results:
             filename = result.document.source.filename
             stem = filename.replace('.pdf', '')

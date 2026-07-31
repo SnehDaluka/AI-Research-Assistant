@@ -14,7 +14,7 @@ class RetrievalConfig:
     RERANK_TOP_K = 5
     ENABLE_RERANKING = True
     RERANK_SCORE_MARGIN = 0.05
-    SIMILARITY_THRESHOLD = 0.5
+    SIMILARITY_THRESHOLD = 0.4
     ENABLE_QUERY_REWRITING = True
     
 class ConversationConfig:

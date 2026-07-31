@@ -3,7 +3,6 @@ import { Box, Drawer, List, ListItem, Typography, Divider, Avatar, IconButton, B
 import { Outlet, useNavigate } from 'react-router-dom';
 import DocumentUploader from './DocumentUploader';
 import DocumentList from './DocumentList';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ChatIcon from '@mui/icons-material/Chat';
 import LogoutIcon from '@mui/icons-material/Logout';
 import FolderIcon from '@mui/icons-material/Folder';
@@ -40,27 +39,13 @@ export default function Layout() {
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <AutoAwesomeIcon sx={{ color: '#ec4899' }} />
+              <img src="/favicon.png" alt="DocMind Logo" style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 0 6px rgba(99, 102, 241, 0.4)' }} />
               <Typography variant="h6" sx={{ fontWeight: 800, background: 'linear-gradient(45deg, #6366f1, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Research AI
+                DocMind
               </Typography>
             </Box>
             <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
 
-            {user && (
-              <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, m: 2, mb: 0, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)' }}>
-                <Avatar src={user.picture || undefined} sx={{ width: 36, height: 36, bgcolor: 'primary.main' }} imgprops={{ referrerPolicy: "no-referrer" }}>
-                  {!user.picture && user.name ? user.name.charAt(0).toUpperCase() : ''}
-                </Avatar>
-                <Box sx={{ overflow: 'hidden', flexGrow: 1 }}>
-                  <Typography variant="body2" noWrap sx={{ fontWeight: 600, color: 'text.primary' }}>{user.name}</Typography>
-                  <Typography variant="caption" noWrap color="text.secondary" sx={{ display: 'block', mt: -0.2 }}>{user.email}</Typography>
-                </Box>
-                <IconButton onClick={handleLogout} size="small" sx={{ color: 'text.secondary', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)' } }}>
-                  <LogoutIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            )}
             
             <List sx={{ px: 2, pt: 3 }}>
               <ListItem disablePadding>
@@ -75,10 +60,23 @@ export default function Layout() {
               <DocumentUploader />
             </Box>
 
-            <Box sx={{ p: 3, mt: 'auto' }}>
-              <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 3, mx: -3 }} />
+            <Box sx={{ p: 2, mt: 'auto' }}>
+              {user && (
+                <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, mb: 2, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <Avatar src={user.picture || undefined} sx={{ width: 36, height: 36, bgcolor: 'primary.main' }} imgProps={{ referrerPolicy: "no-referrer" as const }}>
+                    {!user.picture && user.name ? user.name.charAt(0).toUpperCase() : ''}
+                  </Avatar>
+                  <Box sx={{ overflow: 'hidden', flexGrow: 1 }}>
+                    <Typography variant="body2" noWrap sx={{ fontWeight: 600, color: 'text.primary' }}>{user.name}</Typography>
+                    <Typography variant="caption" noWrap color="text.secondary" sx={{ display: 'block', mt: -0.2 }}>{user.email}</Typography>
+                  </Box>
+                  <IconButton onClick={handleLogout} size="small" sx={{ color: 'text.secondary', '&:hover': { color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)' } }}>
+                    <LogoutIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              )}
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center' }}>
-                AI Research Assistant v1.0
+                DocMind v1.0
               </Typography>
             </Box>
         </Box>
