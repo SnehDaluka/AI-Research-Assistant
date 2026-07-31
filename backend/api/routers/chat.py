@@ -1,5 +1,7 @@
 from fastapi import APIRouter
-from fastapi import Depends
+from fastapi import Depends, Request
+import asyncio
+from fastapi.concurrency import run_in_threadpool
 
 from backend.api.dependencies import (
     get_application,
@@ -17,17 +19,30 @@ router = APIRouter(
 
 
 @router.post("")
-def chat(
-    request: ChatRequest,
+async def chat(
+    request: Request,
+    chat_request: ChatRequest,
     application=Depends(get_application),
     current_user=Depends(get_current_user),
 ):
+    cancel_flag = {"is_cancelled": False}
 
-    response = (
-        application.assistant_service.ask(
-            session_id=request.session_id,
-            question=request.question,
+    async def check_disconnect():
+        while True:
+            if await request.is_disconnected():
+                cancel_flag["is_cancelled"] = True
+                break
+            await asyncio.sleep(0.5)
+
+    task = asyncio.create_task(check_disconnect())
+
+    try:
+        response = await run_in_threadpool(
+            application.assistant_service.ask,
+            chat_request.session_id,
+            chat_request.question,
+            cancel_flag
         )
-    )
-
-    return response
+        return response
+    finally:
+        task.cancel()

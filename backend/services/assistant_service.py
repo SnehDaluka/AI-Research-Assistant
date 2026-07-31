@@ -44,7 +44,7 @@ class ResearchAssistantService:
             session_id
         )
 
-    def ask(self, session_id: str, question: str):
+    def ask(self, session_id: str, question: str, cancel_flag: dict = None):
         
         memory = self.session_service.get_memory(session_id)
         
@@ -107,6 +107,9 @@ class ResearchAssistantService:
             filename = result.document.source.filename
             stem = filename.replace('.pdf', '')
             cleaned_answer = cleaned_answer.replace(f"[{filename}]", "").replace(f"[{stem}]", "")
+            
+        if cancel_flag and cancel_flag.get("is_cancelled"):
+            return ChatResponse(answer="Generation stopped.", sources=[])
             
         memory.add_turn(user=question, assistant=cleaned_answer)
         

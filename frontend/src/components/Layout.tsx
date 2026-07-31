@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { Box, Drawer, List, ListItem, Typography, Divider, Avatar, IconButton, Button } from '@mui/material';
+import { Box, Drawer, List, ListItem, Typography, Divider, Avatar, IconButton, Button, useTheme, useMediaQuery } from '@mui/material';
 import { Outlet, useNavigate } from 'react-router-dom';
 import DocumentUploader from './DocumentUploader';
 import DocumentList from './DocumentList';
 import ChatIcon from '@mui/icons-material/Chat';
 import LogoutIcon from '@mui/icons-material/Logout';
 import FolderIcon from '@mui/icons-material/Folder';
+import MenuIcon from '@mui/icons-material/Menu';
 
 const drawerWidth = 280;
 
 export default function Layout() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false);
   const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false);
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
@@ -25,7 +29,7 @@ export default function Layout() {
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
       <Drawer
         sx={{
-          width: drawerWidth,
+          width: isMobile ? 0 : drawerWidth,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
             width: drawerWidth,
@@ -34,7 +38,9 @@ export default function Layout() {
             borderRight: '1px solid rgba(255, 255, 255, 0.05)',
           },
         }}
-        variant="permanent"
+        variant={isMobile ? "temporary" : "permanent"}
+        open={isMobile ? isLeftDrawerOpen : true}
+        onClose={() => setIsLeftDrawerOpen(false)}
         anchor="left"
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -85,7 +91,12 @@ export default function Layout() {
         component="main"
         sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', position: 'relative' }}
       >
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', minHeight: '64px' }}>
+        <Box sx={{ p: 2, display: 'flex', justifyContent: isMobile ? 'space-between' : 'flex-end', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', minHeight: '64px' }}>
+          {isMobile && (
+            <IconButton onClick={() => setIsLeftDrawerOpen(true)} sx={{ color: 'text.secondary' }}>
+              <MenuIcon />
+            </IconButton>
+          )}
           <Button 
             variant="outlined" 
             onClick={() => setIsRightDrawerOpen(true)}
@@ -106,7 +117,7 @@ export default function Layout() {
         onClose={() => setIsRightDrawerOpen(false)}
         sx={{
           '& .MuiDrawer-paper': {
-            width: drawerWidth,
+            width: { xs: '100%', sm: 400, md: drawerWidth },
             boxSizing: 'border-box',
             backgroundColor: '#0f172a',
             borderLeft: '1px solid rgba(255, 255, 255, 0.05)',

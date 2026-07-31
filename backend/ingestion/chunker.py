@@ -1,11 +1,12 @@
+from backend.config import ChunkerConfig
 from backend.models.document import Document
 
 
 def chunk_pages(
     pages,
     source,
-    chunk_size=100,
-    overlap=20,
+    chunk_size=ChunkerConfig.CHUNK_SIZE,
+    overlap=ChunkerConfig.OVERLAP,
 ):
     """
     Chunk every page separately.

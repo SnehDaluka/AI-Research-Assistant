@@ -3,6 +3,7 @@ import { Box, IconButton, Paper, Typography, Chip, InputBase } from '@mui/materi
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import SendIcon from '@mui/icons-material/Send';
+import StopIcon from '@mui/icons-material/Stop';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { useCreateSessionMutation, useAskQuestionMutation } from '../api/apiSlice';
 
@@ -17,6 +18,7 @@ export default function ChatInterface() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [currentRequest, setCurrentRequest] = useState<any>(null);
   
   const [createSession] = useCreateSessionMutation();
   const [askQuestion, { isLoading }] = useAskQuestionMutation();
@@ -50,8 +52,11 @@ export default function ChatInterface() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
+    const promise = askQuestion({ session_id: sessionId, question: userMessage.content });
+    setCurrentRequest(promise);
+
     try {
-      const res = await askQuestion({ session_id: sessionId, question: userMessage.content }).unwrap();
+      const res = await promise.unwrap();
       const assistantMessage: Message = {
         id: Date.now() + 1,
         type: 'assistant',
@@ -59,15 +64,21 @@ export default function ChatInterface() {
         sources: res.sources,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      console.error(err);
-      setMessages((prev) => [...prev, { id: Date.now() + 1, type: 'assistant', content: 'An error occurred while generating the response.' }]);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setMessages((prev) => [...prev, { id: Date.now() + 1, type: 'assistant', content: 'Generation stopped by user.' }]);
+      } else {
+        console.error(err);
+        setMessages((prev) => [...prev, { id: Date.now() + 1, type: 'assistant', content: 'An error occurred while generating the response.' }]);
+      }
+    } finally {
+      setCurrentRequest(null);
     }
   };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: '900px', width: '100%', mx: 'auto' }}>
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2, '&::-webkit-scrollbar': { width: '8px' }, '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px' } }}>
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', p: { xs: 1, sm: 2 }, display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 }, '&::-webkit-scrollbar': { width: '8px' }, '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px' } }}>
         {messages.length === 0 && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
             <Typography variant="h5" color="text.secondary" sx={{ opacity: 0.5 }}>
@@ -76,7 +87,7 @@ export default function ChatInterface() {
           </Box>
         )}
         {messages.map((msg) => (
-          <Box key={msg.id} sx={{ alignSelf: msg.type === 'user' ? 'flex-end' : 'flex-start', maxWidth: msg.type === 'user' ? '85%' : '100%', width: msg.type === 'user' ? 'auto' : '100%' }}>
+          <Box key={msg.id} sx={{ alignSelf: msg.type === 'user' ? 'flex-end' : 'flex-start', maxWidth: msg.type === 'user' ? { xs: '95%', sm: '85%' } : '100%', width: msg.type === 'user' ? 'auto' : '100%' }}>
             <Paper
               elevation={msg.type === 'user' ? 2 : 0}
               sx={{
@@ -144,7 +155,7 @@ export default function ChatInterface() {
         <div ref={messagesEndRef} />
       </Box>
 
-      <Box sx={{ p: 2, bgcolor: 'background.default', mt: 'auto' }}>
+      <Box sx={{ p: { xs: 1, sm: 2 }, bgcolor: 'background.default', mt: 'auto' }}>
         <Paper
           elevation={4}
           sx={{
@@ -173,9 +184,15 @@ export default function ChatInterface() {
             sx={{ flex: 1, ml: 1 }}
             disabled={isLoading || !sessionId}
           />
-          <IconButton color="primary" onClick={handleSend} disabled={!input.trim() || isLoading || !sessionId} sx={{ alignSelf: 'flex-end', mb: 0.5 }}>
-            <SendIcon />
-          </IconButton>
+          {isLoading ? (
+            <IconButton color="error" onClick={() => currentRequest?.abort()} sx={{ alignSelf: 'flex-end', mb: 0.5 }}>
+              <StopIcon />
+            </IconButton>
+          ) : (
+            <IconButton color="primary" onClick={handleSend} disabled={!input.trim() || !sessionId} sx={{ alignSelf: 'flex-end', mb: 0.5 }}>
+              <SendIcon />
+            </IconButton>
+          )}
         </Paper>
       </Box>
     </Box>

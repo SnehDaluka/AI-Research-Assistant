@@ -1,6 +1,9 @@
 class EmbeddingConfig:
     MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
+class ChunkerConfig:
+    CHUNK_SIZE = 400
+    OVERLAP = 75
 
 class LLMConfig:
     MODEL = "qwen2.5:3b"
