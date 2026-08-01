@@ -55,9 +55,9 @@ export default function Layout() {
             
             <List sx={{ px: 2, pt: 3 }}>
               <ListItem disablePadding>
-                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: 2, bgcolor: 'rgba(99, 102, 241, 0.1)', color: 'primary.light', width: '100%', cursor: 'pointer' }}>
+                 <Box onClick={() => window.dispatchEvent(new Event('new-chat'))} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: 2, bgcolor: 'primary.main', color: 'primary.contrastText', width: '100%', cursor: 'pointer', transition: 'background-color 0.2s', '&:hover': { bgcolor: 'primary.dark' } }}>
                    <ChatIcon fontSize="small" />
-                   <Typography variant="body2" sx={{ fontWeight: 600 }}>Active Research</Typography>
+                   <Typography variant="body2" sx={{ fontWeight: 600 }}>New Chat</Typography>
                  </Box>
               </ListItem>
             </List>

@@ -1,5 +1,5 @@
 class EmbeddingConfig:
-    MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+    MODEL = "BAAI/bge-small-en-v1.5"
 
 class ChunkerConfig:
     CHUNK_SIZE = 400
@@ -10,7 +10,7 @@ class LLMConfig:
     TEMPERATURE = 0.2
     
 class RerankerConfig:
-    MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    MODEL = "BAAI/bge-reranker-base"
 
 class RetrievalConfig:
     SEARCH_TOP_K = 10

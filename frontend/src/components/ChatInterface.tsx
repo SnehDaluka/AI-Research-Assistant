@@ -37,6 +37,24 @@ export default function ChatInterface() {
   }, [createSession]);
 
   useEffect(() => {
+    const handleNewChat = async () => {
+      if (currentRequest) {
+        currentRequest.abort();
+      }
+      setMessages([]);
+      setInput('');
+      try {
+        const res = await createSession().unwrap();
+        setSessionId(res.session_id);
+      } catch (err) {
+        console.error("Failed to create new session", err);
+      }
+    };
+    window.addEventListener('new-chat', handleNewChat);
+    return () => window.removeEventListener('new-chat', handleNewChat);
+  }, [createSession, currentRequest]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
