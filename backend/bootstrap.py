@@ -94,6 +94,7 @@ def startup(user_email: str = "default") -> Application:
         answer_generator=answer_generator,
         conversation_formatter=conversation_formatter,
         session_service=session_service,
+        trace_formatter=trace_formatter,
     )
 
     ingestion_service = IngestionService(

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Box, Drawer, List, ListItem, Typography, Divider, Avatar, IconButton, Button, useTheme, useMediaQuery } from '@mui/material';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { apiSlice } from '../api/apiSlice';
 import DocumentUploader from './DocumentUploader';
 import DocumentList from './DocumentList';
 import ChatIcon from '@mui/icons-material/Chat';
@@ -18,10 +20,12 @@ export default function Layout() {
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    dispatch(apiSlice.util.resetApiState());
     navigate('/login');
   };
 

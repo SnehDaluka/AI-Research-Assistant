@@ -11,6 +11,7 @@ class ResearchAssistantService:
         answer_generator,
         conversation_formatter,
         session_service,
+        trace_formatter=None,
     ):
         self.retrieval_pipeline = (
             retrieval_pipeline
@@ -31,6 +32,8 @@ class ResearchAssistantService:
         self.session_service = (
             session_service
         )
+
+        self.trace_formatter = trace_formatter
 
     def create_session(self) -> str:
 
@@ -97,6 +100,20 @@ class ResearchAssistantService:
                             score=result.score
                         )
                     )
+                    
+        # Fallback: if the LLM didn't explicitly format a citation, just list all the highly-relevant context we passed it
+        if not sources:
+            for result in relevant_results:
+                key = (result.document.source.filename, result.document.page)
+                if key not in seen:
+                    seen.add(key)
+                    sources.append(
+                        SourceResponse(
+                            source=result.document.source.filename,
+                            page=result.document.page,
+                            score=result.score
+                        )
+                    )
 
         # Clean citations from the text so they don't double up with the UI chips
         cleaned_answer = re.sub(r'\[[^\]]*(?:Page|page|PDF|pdf)\s*\d*[^\]]*\]', '', answer)
@@ -109,11 +126,14 @@ class ResearchAssistantService:
             cleaned_answer = cleaned_answer.replace(f"[{filename}]", "").replace(f"[{stem}]", "")
             
         if cancel_flag and cancel_flag.get("is_cancelled"):
-            return ChatResponse(answer="Generation stopped.", sources=[])
+            return ChatResponse(answer="Generation stopped.", sources=[], trace=None)
             
         memory.add_turn(user=question, assistant=cleaned_answer)
         
+        trace_str = self.trace_formatter.format(trace) if self.trace_formatter else None
+        
         return ChatResponse(
             answer=cleaned_answer,
-            sources=sources
+            sources=sources,
+            trace=trace_str
         )

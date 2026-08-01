@@ -25,7 +25,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
 application_cache = {}
 
 def get_application(current_user=Depends(get_current_user)):
-    user_email = current_user.get("email", "default")
+    user_email = current_user.get("email") or current_user.get("sub", "default")
     if user_email not in application_cache:
         application_cache[user_email] = startup(user_email)
     return application_cache[user_email]

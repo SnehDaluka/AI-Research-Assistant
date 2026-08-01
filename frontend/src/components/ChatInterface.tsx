@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Box, IconButton, Paper, Typography, Chip, InputBase } from '@mui/material';
+import { Box, IconButton, Paper, Typography, Chip, InputBase, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import SendIcon from '@mui/icons-material/Send';
@@ -12,6 +13,7 @@ interface Message {
   type: 'user' | 'assistant';
   content: string;
   sources?: any[];
+  trace?: string;
 }
 
 export default function ChatInterface() {
@@ -80,6 +82,7 @@ export default function ChatInterface() {
         type: 'assistant',
         content: res.answer,
         sources: res.sources,
+        trace: res.trace,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err: any) {
@@ -121,21 +124,39 @@ export default function ChatInterface() {
                   {msg.content}
                 </Typography>
               ) : (
-                <Box sx={{
-                  '& p': { m: 0, mb: 1.5, lineHeight: 1.6 },
-                  '& p:last-child': { mb: 0 },
-                  '& a': { color: 'secondary.light', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } },
-                  '& code': { bgcolor: 'rgba(0,0,0,0.2)', p: '2px 6px', borderRadius: 1, fontFamily: 'monospace', fontSize: '0.9em' },
-                  '& pre': { bgcolor: 'rgba(0,0,0,0.3)', p: 2, borderRadius: 2, overflowX: 'auto', '& code': { bgcolor: 'transparent', p: 0 } },
-                  '& ul, & ol': { m: 0, mb: 1.5, pl: 3 },
-                  '& li': { mb: 0.5 },
-                  '& h1, & h2, & h3, & h4, & h5, & h6': { mt: 2, mb: 1, fontWeight: 600 },
-                  wordBreak: 'break-word',
-                  fontSize: '0.95rem'
-                }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {msg.content}
-                  </ReactMarkdown>
+                <Box>
+                  {msg.trace && (
+                    <Accordion elevation={0} sx={{ bgcolor: 'rgba(0,0,0,0.1)', mb: 2, '&:before': { display: 'none' }, borderRadius: 1 }}>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: 'text.secondary' }} />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { my: 1 } }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <DescriptionIcon fontSize="small" /> View Retrieval Trace
+                        </Typography>
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ pt: 0 }}>
+                        <Box sx={{ p: 1.5, bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1, overflowX: 'auto', maxHeight: '300px', overflowY: 'auto' }}>
+                          <Typography variant="caption" component="pre" sx={{ m: 0, fontFamily: 'monospace', color: 'text.secondary', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                            {msg.trace}
+                          </Typography>
+                        </Box>
+                      </AccordionDetails>
+                    </Accordion>
+                  )}
+                  <Box sx={{
+                    '& p': { m: 0, mb: 1.5, lineHeight: 1.6 },
+                    '& p:last-child': { mb: 0 },
+                    '& a': { color: 'secondary.light', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } },
+                    '& code': { bgcolor: 'rgba(0,0,0,0.2)', p: '2px 6px', borderRadius: 1, fontFamily: 'monospace', fontSize: '0.9em' },
+                    '& pre': { bgcolor: 'rgba(0,0,0,0.3)', p: 2, borderRadius: 2, overflowX: 'auto', '& code': { bgcolor: 'transparent', p: 0 } },
+                    '& ul, & ol': { m: 0, mb: 1.5, pl: 3 },
+                    '& li': { mb: 0.5 },
+                    '& h1, & h2, & h3, & h4, & h5, & h6': { mt: 2, mb: 1, fontWeight: 600 },
+                    wordBreak: 'break-word',
+                    fontSize: '0.95rem'
+                  }}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  </Box>
                 </Box>
               )}
               {msg.sources && msg.sources.length > 0 && (

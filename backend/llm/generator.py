@@ -1,3 +1,5 @@
+from backend.prompts.templates import SYSTEM_PROMPT
+
 class AnswerGenerator:
     """
     Generates the final answer using the LLM.
@@ -11,4 +13,4 @@ class AnswerGenerator:
         Generate an answer from the final RAG prompt.
         """
 
-        return self.llm_service.generate(prompt)
+        return self.llm_service.generate(prompt, system_prompt=SYSTEM_PROMPT)

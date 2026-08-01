@@ -54,7 +54,7 @@ export default function DocumentList() {
       showCancelButton: true,
       confirmButtonColor: '#ec4899',
       cancelButtonColor: '#6366f1',
-      confirmButtonText: 'Yes, delete it',
+      confirmButtonText: 'Yes',
       background: '#1e293b',
       color: '#fff',
       customClass: {

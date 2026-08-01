@@ -48,6 +48,10 @@ class LLMRewriter(QueryRewriter):
             f"{query}"
         )
 
-        return self.llm_service.generate(
-            prompt
-        ).strip()
+        result = self.llm_service.generate(prompt).strip()
+        
+        import re
+        result = re.sub(r'[-_]', ' ', result)
+        result = result.strip('"\' ')
+        
+        return result

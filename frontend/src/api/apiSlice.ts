@@ -35,7 +35,7 @@ export const apiSlice = createApi({
         method: 'POST',
       }),
     }),
-    askQuestion: builder.mutation<{ answer: string, sources: any[] }, { session_id: string, question: string }>({
+    askQuestion: builder.mutation<{ answer: string, sources: any[], trace?: string }, { session_id: string, question: string }>({
       query: (body) => ({
         url: '/chat',
         method: 'POST',
@@ -60,6 +60,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body,
       }),
+      invalidatesTags: ['Documents'],
     }),
     clearDocuments: builder.mutation<void, void>({
       query: () => ({

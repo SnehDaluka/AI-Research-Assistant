@@ -26,7 +26,7 @@ class KeywordSearch:
             return
 
         corpus = [
-            document.text.split()
+            document.text.lower().split()
             for document in self.document_store.documents
         ]
 
@@ -44,7 +44,7 @@ class KeywordSearch:
         if self.bm25 is None:
             return []
 
-        query_tokens = query.split()
+        query_tokens = query.lower().split()
 
         scores = self.bm25.get_scores(query_tokens)
 

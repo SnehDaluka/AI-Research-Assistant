@@ -22,3 +22,5 @@ class ChatResponse(BaseModel):
     answer: str
 
     sources: list[SourceResponse]
+    
+    trace: str | None = None

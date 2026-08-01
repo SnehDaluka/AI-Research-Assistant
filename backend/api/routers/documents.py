@@ -14,7 +14,7 @@ router = APIRouter(
 
 @router.get("", response_model=DocumentsResponse)
 async def list_documents(current_user=Depends(get_current_user)):
-    user_email = current_user.get("email", "default") if current_user else "default"
+    user_email = (current_user.get("email") or current_user.get("sub", "default")) if current_user else "default"
     documents_dir = Path(f"backend/documents/{user_email}")
     docs = []
     if documents_dir.exists():
@@ -29,7 +29,7 @@ async def upload_documents(
     current_user=Depends(get_current_user),
 ):
     # Save the files to backend/documents/
-    user_email = current_user.get("email", "default") if current_user else "default"
+    user_email = (current_user.get("email") or current_user.get("sub", "default")) if current_user else "default"
     documents_dir = Path(f"backend/documents/{user_email}")
     documents_dir.mkdir(parents=True, exist_ok=True)
     
@@ -57,7 +57,7 @@ async def clear_documents(
     application=Depends(get_application),
     current_user=Depends(get_current_user)
 ):
-    user_email = current_user.get("email", "default") if current_user else "default"
+    user_email = (current_user.get("email") or current_user.get("sub", "default")) if current_user else "default"
     documents_dir = Path(f"backend/documents/{user_email}")
     if documents_dir.exists():
         for item in documents_dir.glob("*.pdf"):
@@ -77,7 +77,7 @@ async def delete_document(
     application=Depends(get_application),
     current_user=Depends(get_current_user)
 ):
-    user_email = current_user.get("email", "default") if current_user else "default"
+    user_email = (current_user.get("email") or current_user.get("sub", "default")) if current_user else "default"
     documents_dir = Path(f"backend/documents/{user_email}")
     file_path = documents_dir / filename
     

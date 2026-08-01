@@ -1,4 +1,4 @@
-from backend.prompts.templates import SYSTEM_PROMPT
+# System prompt is now passed natively via generator.py
 
 
 def build_prompt(
@@ -12,13 +12,13 @@ def build_prompt(
     """
 
     return (
-        f"{SYSTEM_PROMPT}\n\n"
+        f"Context:\n"
+        f"{context}\n\n"
         f"Conversation Summary:\n"
         f"{conversation_summary or 'No conversation summary.'}\n\n"
         f"Recent Conversation:\n"
         f"{conversation or 'No previous conversation.'}\n\n"
-        f"Retrieved Context:\n"
-        f"{context}\n\n"
-        f"Current Question:\n"
-        f"{query}"
+        f"Question:\n"
+        f"{query}\n\n"
+        f"Answer the question based ONLY on the provided Context."
     )

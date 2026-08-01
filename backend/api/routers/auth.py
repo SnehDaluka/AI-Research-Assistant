@@ -40,6 +40,7 @@ async def google_login(req: GoogleLoginRequest):
         expiration = datetime.datetime.utcnow() + datetime.timedelta(days=7)
         token = jwt.encode({
             "sub": email,
+            "email": email,
             "name": name,
             "picture": picture,
             "exp": expiration.timestamp()
