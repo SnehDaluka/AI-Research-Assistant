@@ -1,126 +1,143 @@
-# AI Research Assistant Architecture
+# DocMind Architecture & Technical Specification
 
-This document describes the production-ready Retrieval-Augmented Generation (RAG) architecture of the AI Research Assistant.
+This document details the production-ready, domain-driven Retrieval-Augmented Generation (RAG) architecture of **DocMind (AI Research Assistant)**.
+
+---
 
 ## 1. System Overview
 
-The AI Research Assistant is designed to process PDF documents, extract their knowledge into a semantic search index, and accurately answer user queries based on that knowledge.
+**DocMind** is a local-first, privacy-focused AI research platform designed to ingest complex multi-page documents (PDFs), construct a high-precision hybrid semantic index, and deliver grounded, citation-backed answers to user queries with zero external data leakage.
 
-Unlike a basic script, this application is built with **Domain-Driven Design (DDD)** and separation of concerns, ensuring scalability, maintainability, and accurate retrieval. It operates in two main phases:
-1. **Knowledge Base Creation (Ingestion Mode)**: Processes documents and persists their embeddings and metadata.
-2. **Interactive Chat (Retrieval Mode)**: Loads the persisted knowledge base for instantaneous startup and conversational query answering.
+The application adheres strictly to **Domain-Driven Design (DDD)** and separation of concerns, operating in two primary operational phases:
+1. **Multi-Tenant Ingestion Mode**: Extracts text, structures chunk hierarchies, and persists dual-index representations (dense vector + sparse lexical) isolated per user.
+2. **Interactive Hybrid RAG Mode**: Loads persisted indices for sub-second retrieval, applies query contextualization, fuses dense and sparse candidate pools, re-ranks with cross-encoders, and generates grounded responses via local LLMs.
 
 ---
 
 ## 2. Core Domain Models
 
-Instead of passing primitive data types, the system models real-world concepts as Python `dataclasses`.
+The domain logic is strictly modeled using immutable Python `dataclasses` located in `backend/models/`:
 
-- **`SourceDocument`**: Represents the original file (e.g., PDF filename and path).
-- **`Page`**: Represents a single extracted page from a document, preserving structural boundaries.
-- **`Document`**: The core unit of retrieval. It represents a semantic chunk of text and includes metadata:
+- **`SourceDocument`**: Encapsulates metadata of the raw uploaded file (filename, absolute path, user scope).
+- **`Page`**: Represents an extracted document page preserving original document boundaries and page indexing.
+- **`Document`**: The atomic retrieval unit containing:
   - `chunk_id` (Unique identifier)
   - `source` (`SourceDocument`)
   - `page` (Page number)
-  - `text` (The actual chunk content)
-- **`SearchResult`**: Represents a matched `Document` alongside its cosine similarity `score`.
-- **`IngestionResult`**: Represents the outcome of processing a document (e.g., number of chunks created).
-
-By passing these objects throughout the pipeline, the system maintains critical metadata (like source citations and page numbers) from ingestion to the final LLM prompt.
+  - `text` (The chunk body)
+- **`SearchResult`**: Wraps a matched `Document` alongside its computed relevance `score`.
+- **`IngestionResult`**: Summary metric entity reporting processed documents and generated chunk counts.
 
 ---
 
 ## 3. The Ingestion Pipeline
 
-The ingestion pipeline prepares documents for retrieval. It is coordinated by the `IngestionPipeline` class to ensure all components run sequentially.
+The ingestion pipeline converts raw binary PDFs into search-optimized indices. It is coordinated by `IngestionPipeline`:
 
 ```text
-PDF -> Extractor -> Pages -> Chunker -> Documents -> Embedding Service -> Document Store
+PDF Upload -> Page Extractor (PyMuPDF) -> Text Chunker -> Dual Indexer (Dense + Sparse) -> Disk Persistence
 ```
 
 ### Components:
-- **Loader**: Validates the PDF file path and existence.
-- **Extractor (`PyMuPDF/fitz`)**: Reads the PDF and returns a list of `Page` objects, preserving page boundaries.
-- **Chunker**: Splits the pages into smaller, overlapping chunks to fit LLM context windows while preserving meaning. It yields `Document` objects with rich metadata.
-- **Embedding Service**: Converts the chunk text into 384-dimensional dense vectors using `sentence-transformers/all-MiniLM-L6-v2`. Embeddings are normalized for optimal cosine similarity search.
-- **Document Store**: Stores the vectors in a **FAISS (`IndexFlatIP`)** index and the `Document` objects (metadata) via `pickle`.
+1. **Loader & Validator**: Validates file integrity and ensures destination directory exists at `backend/documents/{user_email}/`.
+2. **Extractor (`PyMuPDF / fitz`)**: Reads document streams into a structured `List[Page]`, preserving page numbers.
+3. **Chunker (`Chunker`)**: 
+   - Chunk Size: **400 words** (~500 tokens).
+   - Overlap: **75 words** to prevent context loss across boundaries.
+   - Enriches each chunk with metadata (source name, page number, unique chunk ID).
+4. **Embedding Service (`SentenceTransformers`)**: 
+   - Model: **`BAAI/bge-small-en-v1.5`** (384-dimensional dense vectors).
+   - All embeddings are L2-normalized to enable fast dot-product cosine similarity computation.
+5. **Document Store & FAISS**: Stores dense vectors in a **`faiss.IndexFlatIP`** (Inner Product) index and pickles `Document` metadata to `documents.pkl`.
+6. **BM25 Keyword Index**: Constructs a sparse inverted index using **`rank_bm25.BM25Okapi`** over lowercased tokens.
 
-### Persistence
-Embeddings are computationally expensive to generate. Therefore, the application persists the FAISS index (`faiss.index`) and document metadata (`documents.pkl`) to disk in the `backend/storage` directory. This allows the assistant to skip ingestion on future startups, loading the knowledge base instantly.
+### Multi-Tenant Persistence
+All indices are stored with strict user segregation under `backend/storage/{user_email}/`:
+- `faiss.index`: Dense vector index.
+- `documents.pkl`: Chunk metadata and raw text.
+- `bm25.pkl`: Pickled BM25 search structures.
 
 ---
 
-## 4. The Retrieval Pipeline (Chat Mode)
+## 4. The Two-Stage Hybrid Retrieval Pipeline
 
-Once the knowledge base is built and loaded, the application enters the interactive chat loop.
+DocMind implements an advanced **Hybrid Retrieval + Re-ranking** architecture to overcome the classic blind spots of pure vector search.
 
 ```text
-User Query -> Query Embedding -> FAISS Search -> Top-K Filtering -> Prompt Builder -> LLM Generator -> Answer
+User Question -> Query Rewriter (LLM) -> [Dense FAISS + Sparse BM25] -> Reciprocal Rank Fusion (RRF) -> Cross-Encoder Re-ranker -> Context Builder -> LLM Generator
 ```
 
-### Components:
-- **Semantic Search**: The user's query is embedded and searched against the FAISS index using Cosine Similarity (Inner Product on normalized vectors).
-- **Filtering (`DocumentStore.search`)**: Retrieves the `Top K` (e.g., 5) closest chunks, filtering out those below the `SIMILARITY_THRESHOLD`. Returns a list of `SearchResult` objects.
-- **Prompt Builder**: Constructs the LLM prompt. It injects the retrieved text alongside its metadata (Source and Page) to enable the LLM to generate citations. It includes strict system instructions to prevent hallucination.
-- **LLM Generator (`Ollama`)**: Submits the prompt to a locally hosted LLM (e.g., `qwen2.5:3b`) for private, offline, and cost-free natural language generation.
+### Pipeline Stages:
 
-## 5. Web Application and API
+1. **Contextual Query Rewriting (`LLMRewriter`)**:
+   - Takes current turn, recent chat history, and conversation summary.
+   - Outputs a self-contained, disambiguated search query (e.g., resolving pronouns like "it" or "the latter").
+   - Post-processes output to sanitize hyphens or formatting artifacts.
 
-The application has been upgraded from a local CLI script to a full-fledged web application.
+2. **Parallel Hybrid Search**:
+   - **Dense Retrieval:** Generates a query embedding with `bge-small-en-v1.5` and searches the user's FAISS index for the Top-10 semantic neighbors.
+   - **Sparse Retrieval:** Tokenizes the query into lowercase tokens and computes BM25 scores across the document corpus for the Top-10 exact keyword matches.
 
-### FastAPI Backend
-The backend is powered by **FastAPI** (`backend/api/app.py`), providing an asynchronous, RESTful API layer over the core RAG services. 
-Key endpoints include:
-- `POST /auth/google`: Verifies Google credentials and issues a custom JWT token.
-- `POST /documents/`: Handles file uploads (PDFs) and triggers the ingestion pipeline.
-- `POST /chat/ask`: Submits a user query to the RAG pipeline and returns the generated answer with sources.
+3. **Reciprocal Rank Fusion (RRF)**:
+   - Merges dense and sparse rankings using the rank fusion formula ($k=60$):
+     $$RRF(d) = \sum_{m \in \{Dense, Sparse\}} \frac{1}{60 + r_m(d)}$$
+   - Generates a balanced candidate list of the Top-10 chunks.
 
-### React + Vite Frontend
-The frontend (`frontend/`) is a modern React Single Page Application (SPA).
-- **State Management**: Uses Redux Toolkit (RTK) Query for efficient caching and API interactions.
-- **Routing**: Uses React Router to protect routes and handle navigation.
-- **Styling**: Built with Material UI (MUI) for a clean, responsive, dark-mode user interface.
+4. **Cross-Encoder Re-Ranking (`CrossEncoderReranker`)**:
+   - Model: **`BAAI/bge-reranker-base`**.
+   - Computes full joint cross-attention between `(Query, Chunk)` pairs.
+   - Sorts candidates by true semantic relevance and selects the **Top-5** highest-scoring chunks.
 
----
-
-## 6. Authentication & Security
-
-The application uses a secure authentication flow based on **Google OAuth 2.0**:
-1. **Frontend Login**: The user authenticates with Google via the `@react-oauth/google` provider.
-2. **Backend Validation**: The frontend sends the Google credential to the backend, which verifies the token signature using the `google-auth` library to ensure authenticity.
-3. **JWT Session**: Upon successful validation, the backend issues an application-specific JWT (JSON Web Token) signed with a custom secret (`JWT_SECRET`).
-4. **Protected Routes**: The frontend stores the JWT and attaches it to all subsequent API requests. Backend endpoints use a FastAPI dependency (`get_current_user`) to decode and validate the token, ensuring that only authorized users can access the knowledge base and chat.
+5. **Similarity Threshold Guard**:
+   - Filters out chunks with relevance scores below `SIMILARITY_THRESHOLD = 0.40`.
+   - If no chunks pass, injects a fallback message instructing the LLM that no context was found.
 
 ---
 
-## 7. Directory Structure
+## 5. Grounded LLM Generation & Citation Attribution
 
-```text
-backend/
-├── api/                  # FastAPI application, routers, schemas, and dependencies
-├── app.py                # Legacy CLI application (deprecated)
-├── config.py             # Configuration (Top-K, thresholds, models, debug mode)
-├── documents/            # Source PDF files to be ingested
-├── embeddings/           # Embedding generation and normalization
-├── ingestion/            # Loading, extraction, chunking, and pipeline coordination
-├── llm/                  # Local LLM client and generator
-├── models/               # Domain models (Document, Page, SearchResult, etc.)
-├── prompts/              # Prompt templates and builder logic
-├── retrieval/            # FAISS DocumentStore and search logic
-├── services/             # Application services tying domain logic together
-├── storage/              # Persisted knowledge base (FAISS index & pickled metadata)
-└── utils/                # Debugging and display utilities
-```
+1. **Context Building (`ContextBuilder`)**: Formats retrieved passages with explicit `[Document N]` delimiters, source filenames, and page numbers.
+2. **Prompt Builder (`builder.py`) & Template (`templates.py`)**:
+   - Strictly separates system instructions into a native `{"role": "system"}` message sent to the local LLM.
+   - Prevents small-model context decay by placing an explicit grounding constraint at the bottom of the prompt.
+3. **Local LLM Generator (`OllamaClient`)**:
+   - Default Model: **`qwen2.5:3b`** (or `llama3.2:3b`).
+   - Runs locally via Ollama with `temperature = 0.2` for deterministic, hallucination-free generation.
+4. **Citation Extraction & Fallback**:
+   - Automatically detects inline citations (e.g., `[system_design.pdf, Page 17]`).
+   - If the LLM omits explicit citation formatting, the backend automatically falls back to attributing all high-confidence context documents passed to the prompt.
 
 ---
 
-## 8. Debugging and Observability
+## 6. Multi-Tenancy & Security Architecture
 
-Retrieval quality dictates answer quality. To facilitate debugging without cluttering the user interface, the system implements a **Developer Mode** (`DebugConfig.DEBUG`).
+1. **Google OAuth 2.0 Authentication**:
+   - Frontend verifies Google ID tokens using `@react-oauth/google`.
+   - Backend validates signatures via `google.oauth2.id_token` against `GOOGLE_CLIENT_ID`.
+2. **Application JWT Session**:
+   - Issues custom HS256-signed JWTs containing `sub`, `email`, and expiration claims.
+   - Fast token validation via FastAPI `HTTPBearer` security dependency.
+3. **Application Cache Isolation**:
+   - `application_cache[user_email]` lazily initializes isolated application instances.
+   - User A has zero access to the document storage, vector database, or session memory of User B.
 
-When enabled, the system uses `utils/display.py` to print:
-- Retrieved document ranks and exact similarity scores.
-- The metadata (source, page) and text of the chunks sent to the LLM.
-- The final constructed prompt.
+---
 
-This visibility makes it easy to diagnose whether an incorrect answer stems from poor chunking, a strict similarity threshold, or LLM hallucination.
+## 7. Web Application & Observability
+
+### FastAPI REST Layer (`backend/api/`):
+- `POST /auth/google`: Authenticates Google credentials and issues JWT.
+- `GET /documents`: Lists all uploaded documents for the active user.
+- `POST /documents`: Ingests and indexes uploaded PDF files.
+- `DELETE /documents/{filename}`: Removes a document and updates indices.
+- `DELETE /documents`: Clears the user's entire knowledge base.
+- `POST /sessions`: Creates an isolated chat session.
+- `POST /chat`: Submits questions and returns generated answers with source chips and retrieval trace logs.
+- `GET /health`: Diagnostic health check reporting Ollama connectivity, available local models, active configurations, and system uptime.
+
+### React + TypeScript Frontend (`frontend/`):
+- **Redux Toolkit Query (`apiSlice.ts`)**: Manages caching, optimistic updates, tag invalidation (`['Documents']`), and memory resets on logout.
+- **UI Components**:
+  - `Layout.tsx`: Responsive drawer layout with mobile drawer toggles and user profile controls.
+  - `ChatInterface.tsx`: Markdown rendering (`react-markdown`, `remark-gfm`), Stop generation button, Source citation chips, and an expandable **Retrieval Trace Accordion** for complete transparency.
+  - `DocumentList.tsx` & `DocumentUploader.tsx`: Ingestion tracking and knowledge base management.

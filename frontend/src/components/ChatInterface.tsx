@@ -4,7 +4,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import SendIcon from '@mui/icons-material/Send';
-import StopIcon from '@mui/icons-material/Stop';
+import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { useCreateSessionMutation, useAskQuestionMutation } from '../api/apiSlice';
 
@@ -224,8 +224,8 @@ export default function ChatInterface() {
             disabled={isLoading || !sessionId}
           />
           {isLoading ? (
-            <IconButton color="error" onClick={() => currentRequest?.abort()} sx={{ alignSelf: 'flex-end', mb: 0.5 }}>
-              <StopIcon />
+            <IconButton onClick={() => currentRequest?.abort()} sx={{ alignSelf: 'flex-end', mb: 0.5 }}>
+              <StopCircleOutlinedIcon />
             </IconButton>
           ) : (
             <IconButton color="primary" onClick={handleSend} disabled={!input.trim() || !sessionId} sx={{ alignSelf: 'flex-end', mb: 0.5 }}>
